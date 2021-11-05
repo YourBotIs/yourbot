@@ -1,0 +1,24 @@
+import discord
+import asyncio
+import logging
+
+logger = logging.getLogger('MyClient')
+logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+class MyClient(discord.Client):
+    async def on_ready(self):
+        logger.info('Logged on as {0}!'.format(self.user))
+
+    async def on_message(self, message):
+        logger.info('Message from {0.author}: {0.content}'.format(message))
+
+client = MyClient()
+asyncio.create_task(client.start('<%= bot.token %>'))

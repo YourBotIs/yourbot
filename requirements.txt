@@ -1,0 +1,3 @@
+git+https://github.com/Pyrlang/Term.git@19753ee6719f0afe37520d4be8bcbe6091d8313a
+git+https://github.com/Pyrlang/Pyrlang.git@efed85c272e1214c495f8dcd4eb02b0980811fe7
+discord.py
