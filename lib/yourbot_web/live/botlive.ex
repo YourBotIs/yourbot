@@ -8,6 +8,7 @@ defmodule YourBotWeb.BotLive do
 
   alias SurfaceBulma.Button
   alias YourBotWeb.Components.BotModal
+  require Logger
 
   data show_bot_dialog, :boolean, default: false
 
@@ -76,6 +77,7 @@ defmodule YourBotWeb.BotLive do
 
   def handle_event("monaco_change", %{"value" => code}, socket) do
     changeset = Bots.change_bot(socket.assigns.bot_changeset.data, %{code: code})
+    Logger.info(%{changeset: changeset})
 
     {:noreply,
      socket
@@ -83,16 +85,20 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("save_code", %{}, socket) do
-    bot_changeset =
-      Bots.sync_code!(
-        socket.assigns.bot_changeset.data,
-        socket.assigns.bot_changeset.changes.code
-      )
-      |> Bots.change_bot()
+    if Ecto.Changeset.get_change(socket.assigns.bot_changeset, :code) do
+      bot_changeset =
+        Bots.sync_code!(
+          socket.assigns.bot_changeset.data,
+          socket.assigns.bot_changeset.changes.code
+        )
+        |> Bots.change_bot()
 
-    {:noreply,
-     socket
-     |> assign(:bot_changeset, bot_changeset)}
+      {:noreply,
+       socket
+       |> assign(:bot_changeset, bot_changeset)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("restart_code", %{"bot" => bot_id}, socket) do
@@ -129,13 +135,17 @@ defmodule YourBotWeb.BotLive do
         %Phoenix.Socket.Broadcast{
           topic: "sandbox",
           event: "tty_data",
-          payload: %{bot: _bot, data: tty_data}
+          payload: %{bot: bot, data: tty_data}
         },
         socket
       ) do
-    {:noreply,
-     socket
-     |> push_event("sandbox", %{"tty_data" => tty_data})}
+    if bot.id == socket.assigns.bot_changeset.data.id do
+      {:noreply,
+       socket
+       |> push_event("sandbox", %{"tty_data" => tty_data})}
+    else
+      {:noreply, socket}
+    end
   end
 
   def create_bot(params, socket) do
