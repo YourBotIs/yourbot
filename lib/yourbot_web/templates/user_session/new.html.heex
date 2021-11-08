@@ -8,16 +8,16 @@
   <% end %>
 
   <%= label f, :email %>
-  <%= email_input f, :email, required: true %>
+  <%= email_input f, :email, required: true, role: "login_email_input" %>
 
   <%= label f, :password %>
-  <%= password_input f, :password, required: true %>
+  <%= password_input f, :password, required: true, role: "login_password_input" %>
 
   <%= label f, :remember_me, "Keep me logged in for 60 days" %>
   <%= checkbox f, :remember_me %>
 
   <div>
-    <%= submit "Log in" %>
+    <%= submit "Log in", role: "login_submit" %>
   </div>
 </.form>
 

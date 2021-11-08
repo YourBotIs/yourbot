@@ -33,7 +33,7 @@ defmodule YourBotWeb.Components.BotModal do
             <Field name={:name}>
               <Label/>
               <div class="control">
-                <TextInput opts={role: "fleet_name_input"}/>
+                <TextInput opts={role: "bot_name_input"}/>
               </div>
               <ErrorTag class="help is-danger"/>
             </Field>
@@ -41,7 +41,7 @@ defmodule YourBotWeb.Components.BotModal do
             <Field name={:token}>
               <Label/>
               <div class="control">
-              <TextInput opts={role: "fleet_name_input"}/>
+              <TextInput opts={role: "bot_token_input"}/>
               </div>
               <ErrorTag class="help is-danger"/>
             </Field>
@@ -49,7 +49,7 @@ defmodule YourBotWeb.Components.BotModal do
             <Field name={:application_id}>
               <Label/>
               <div class="control">
-              <NumberInput opts={role: "fleet_name_input"}/>
+              <NumberInput opts={role: "bot_application_id_input"}/>
               </div>
               <ErrorTag class="help is-danger"/>
             </Field>
@@ -57,12 +57,12 @@ defmodule YourBotWeb.Components.BotModal do
             <Field name={:public_key}>
               <Label/>
               <div class="control">
-                <TextInput opts={role: "fleet_name_input"}/>
+                <TextInput opts={role: "bot_public_key_input"}/>
               </div>
               <ErrorTag class="help is-danger" />
             </Field>
 
-            <Submit opts={disabled: !@changeset.valid?, role: "fleet_submit"} click={@hide_event}> Save </Submit>
+            <Submit opts={disabled: !@changeset.valid?, role: "bot_submit"} click={@hide_event}> Save </Submit>
           </Form>
         </section>
         <footer class="modal-card-foot" style="justify-content: flex-end">

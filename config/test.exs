@@ -31,3 +31,23 @@ config :logger, level: :warn
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+config :wallaby, otp_app: :yourbot
+
+config :yourbot, YourBotWeb.Endpoint, server: true
+
+config :yourbot, :sandbox, Ecto.Adapters.SQL.Sandbox
+
+config :ex_aws,
+  access_key_id: ["username", :instance_role],
+  secret_access_key: ["password123", :instance_role]
+
+config :ex_aws, :s3, %{
+  access_key_id: "username",
+  secret_access_key: "password123",
+  scheme: "http://",
+  host: "localhost",
+  port: 9000,
+  region: "local",
+  bucket: "uploads"
+}

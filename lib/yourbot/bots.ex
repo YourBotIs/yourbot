@@ -37,9 +37,10 @@ defmodule YourBot.Bots do
 
     case Repo.transaction(multi) do
       {:ok, %{bot: bot}} ->
-        @endpoint.broadcast("crud:bots", "insert", %{new: bot})
         code = Bot.code_template(bot)
-        {:ok, sync_code!(bot, code)}
+        bot = sync_code!(bot, code)
+        @endpoint.broadcast("crud:bots", "insert", %{new: bot})
+        {:ok, bot}
 
       {:error, changeset} ->
         {:error, changeset}
@@ -52,7 +53,7 @@ defmodule YourBot.Bots do
     case Repo.update(changeset) do
       {:ok, updated_bot} ->
         @endpoint.broadcast!("crud:bots", "update", %{new: updated_bot, old: bot})
-        {:ok, sync_code!(bot, bot.code)}
+        {:ok, sync_code!(updated_bot, bot.code)}
 
       {:error, changeset} ->
         {:error, changeset}

@@ -180,7 +180,7 @@ defmodule YourBotWeb.BotLive do
         </p>
         <ul class="menu-list">
           {#for bot <- @bots }
-            <li><a :on-click="select_bot" phx-value-bot_id={bot.id}> {bot.name} </a></li>
+            <li><a :on-click="select_bot" phx-value-bot_id={bot.id} role="select_bot"> {bot.name} </a></li>
           {/for}
         </ul>
         </aside>

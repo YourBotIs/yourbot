@@ -24,6 +24,7 @@ defmodule YourBot.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import YourBot.DataCase
+      @endpoint YourBotWeb.Endpoint
     end
   end
 
