@@ -110,4 +110,5 @@ defmodule YourBotWeb.OAuth.Discord do
   end
 
   def login_url, do: @url
+  def redirect_url, do: @redirect_url
 end
