@@ -37,8 +37,13 @@ class Sandbox(GenServer):
             # os.chroot("/var/chroot")
             # os.chdir("/")
             code = compile(msg[1], "client.py", "exec")
+<<<<<<< HEAD
             exec(code, globals(), globals())
             # self.node.send_nowait()
+=======
+            # exec(code)
+            exec(code, globals(),globals())
+>>>>>>> Update exec to use globals
         except:
             traceback.print_exc()
             reason = str(sys.exc_info()[1]).encode('utf-8')
