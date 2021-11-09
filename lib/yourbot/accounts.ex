@@ -6,9 +6,43 @@ defmodule YourBot.Accounts do
   import Ecto.Query, warn: false
   alias YourBot.Repo
 
-  alias YourBot.Accounts.{User, UserToken, UserNotifier}
+  alias YourBot.Accounts.{User, UserToken, UserNotifier, DiscordOauth}
 
   ## Database getters
+
+  def get_discord_oauth(id) do
+    Repo.get_by(DiscordOauth, id: id)
+  end
+
+  def get_user_by_discord_id(discord_id) do
+    Repo.one(
+      from d in DiscordOauth,
+        where: d.discord_user_id == ^discord_id,
+        join: u in User,
+        on: u.discord_oauth_id == d.id,
+        select: u
+    )
+    |> Repo.preload(:discord_oauth)
+  end
+
+  def change_discord_oauth(discord_oauth, attrs \\ %{}) do
+    DiscordOauth.changeset(discord_oauth, attrs)
+  end
+
+  def create_discord_oauth(attrs) do
+    change_discord_oauth(%DiscordOauth{}, attrs)
+    |> Repo.insert()
+  end
+
+  def update_discord_oauth(discord_oauth, me) do
+    change_discord_oauth(discord_oauth, me)
+    |> Repo.update()
+  end
+
+  def assoc_discord_oauth(user, discord_oauth) do
+    Ecto.Changeset.change(user, %{discord_oauth_id: discord_oauth.id})
+    |> Repo.update()
+  end
 
   @doc """
   Gets a user by email.

@@ -191,11 +191,11 @@ defmodule YourBotWeb.BotLive do
 
       <div class="column">
         <section class="box">
-        <div>
-          <Button class="button is-rounded is-primary" click="save_code" disabled={!@bot_changeset.valid?} >Save</Button>
-          <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id}>Restart</Button>
-          <Button class="button is-rounded is-success" click="run_code" opts={phx_value_bot: @bot_changeset.data.id}>Run</Button>
-          <Button class="button is-rounded is-danger">Stop</Button>
+          <div>
+            <Button class="button is-rounded is-primary" click="save_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
+            <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
+            <Button class="button is-rounded is-success" click="run_code"     opts={phx_value_bot: @bot_changeset.data.id, role: "run_code_#{@bot_changeset.data.id}"}>Run</Button>
+            <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
           </div>
           <XTerm id="terminal"/>
         </section>

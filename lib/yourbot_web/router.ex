@@ -91,6 +91,7 @@ defmodule YourBotWeb.Router do
     post "/users/confirm", UserConfirmationController, :create
     get "/users/confirm/:token", UserConfirmationController, :edit
     post "/users/confirm/:token", UserConfirmationController, :update
+    get "/oauth/discord", DiscordOAuthController, :oauth
   end
 
   if Mix.env() == :dev do

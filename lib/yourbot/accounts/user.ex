@@ -9,6 +9,7 @@ defmodule YourBot.Accounts.User do
     field :confirmed_at, :naive_datetime
     has_many :bot_users, YourBot.Bots.BotUser
     has_many :bots, through: [:bot_users, :bot]
+    belongs_to :discord_oauth, YourBot.Accounts.DiscordOauth
     timestamps()
   end
 
