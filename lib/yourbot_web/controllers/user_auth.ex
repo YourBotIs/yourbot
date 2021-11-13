@@ -139,6 +139,35 @@ defmodule YourBotWeb.UserAuth do
     end
   end
 
+  def require_authenticated_api_token(conn, _opts) do
+    case get_req_header(conn, "bearer") do
+      [token] ->
+        verify_api_token(conn, token)
+
+      _ ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> resp(401, "{\"error\": \"not authenticated\"}")
+        |> send_resp()
+        |> halt()
+    end
+  end
+
+  def verify_api_token(conn, token) do
+    case YourBot.Accounts.APIToken.verify(token) do
+      {:ok, user} ->
+        conn
+        |> assign(:current_user, user)
+
+      :error ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> resp(401, "{\"error\": \"not authenticated\"}")
+        |> send_resp()
+        |> halt()
+    end
+  end
+
   defp maybe_store_return_to(%{method: "GET"} = conn) do
     put_session(conn, :user_return_to, current_path(conn))
   end

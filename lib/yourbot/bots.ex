@@ -7,6 +7,11 @@ defmodule YourBot.Bots do
 
   alias YourBot.Bots.{Bot, BotUser}
 
+  def list_bots do
+    Repo.all(Bot)
+    |> Enum.map(&load_code/1)
+  end
+
   def list_bots(user) do
     bot_ids =
       Repo.all(
@@ -17,10 +22,15 @@ defmodule YourBot.Bots do
       )
 
     Repo.all(from bot in Bot, where: bot.id in ^bot_ids)
+    |> Enum.map(&load_code/1)
   end
 
   def get_bot(id) do
-    bot = Repo.get!(Bot, id)
+    Repo.get!(Bot, id)
+    |> load_code()
+  end
+
+  def load_code(bot) do
     %{body: body} = ExAws.S3.get_object("bots", "#{bot.id}/client.py") |> ExAws.request!()
     %{bot | code: body}
   end
@@ -42,7 +52,7 @@ defmodule YourBot.Bots do
         @endpoint.broadcast("crud:bots", "insert", %{new: bot})
         {:ok, bot}
 
-      {:error, changeset} ->
+      {:error, :bot, changeset, _changes} ->
         {:error, changeset}
     end
   end

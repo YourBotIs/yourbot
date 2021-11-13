@@ -19,6 +19,11 @@ defmodule YourBotWeb.Router do
     plug :accepts, ["json"]
   end
 
+  scope "/api", YourBotWeb do
+    pipe_through [:api, :require_authenticated_api_token]
+    resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete]
+  end
+
   scope "/", YourBotWeb do
     pipe_through :browser
 

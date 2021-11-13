@@ -77,3 +77,12 @@ config :yourbot, YourBot.Repo,
   pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
 config :yourbot, YourBot.BotSandbox, node_name: "yourbotis"
+
+api_token_secret =
+  System.get_env("API_TOKEN_SECRET") ||
+    raise """
+    environment variable API_TOKEN_SECRET is missing.
+    You can generate one by calling: mix phx.gen.secret
+    """
+
+config :yourbot, YourBot.Accounts.APIToken, secret: api_token_secret
