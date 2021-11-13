@@ -21,6 +21,7 @@ defmodule YourBotWeb.Router do
 
   scope "/api", YourBotWeb do
     pipe_through [:api, :require_authenticated_api_token]
+    resources "/users", UsersController, only: [:create, :show, :update, :delete]
     resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete]
   end
 

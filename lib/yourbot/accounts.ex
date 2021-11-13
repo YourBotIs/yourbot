@@ -15,7 +15,7 @@ defmodule YourBot.Accounts do
   end
 
   def get_user_by_discord_id(discord_id) do
-    Repo.one(
+    Repo.one!(
       from d in DiscordOauth,
         where: d.discord_user_id == ^discord_id,
         join: u in User,
