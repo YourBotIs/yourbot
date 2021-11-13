@@ -51,3 +51,6 @@ config :ex_aws, :s3, %{
   region: "local",
   bucket: "uploads"
 }
+
+config :yourbot, YourBot.Accounts.APIToken,
+  secret: "sbAuPxKKmcLw3Z0hdLDaOYo2T1LbvKJqReGai+Acl0qQn+ezKvmFtIsg/tSGqR+J"

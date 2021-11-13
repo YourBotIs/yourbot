@@ -13,7 +13,9 @@ defmodule YourBotWeb.BotsController do
 
     case Bots.create_bot(user, params) do
       {:ok, bot} ->
-        render(conn, "show.json", bots: bot)
+        conn
+        |> put_status(:created)
+        |> render("show.json", bots: bot)
 
       {:error, changeset} ->
         render(conn, "error.json", changeset: changeset)
@@ -25,7 +27,8 @@ defmodule YourBotWeb.BotsController do
 
     case YourBot.Bots.update_bot(bot, params) do
       {:ok, bot} ->
-        render(conn, "show.json", bots: bot)
+        conn
+        |> render("show.json", bots: bot)
 
       {:error, changeset} ->
         render(conn, "error.json", changeset: changeset)
@@ -35,5 +38,17 @@ defmodule YourBotWeb.BotsController do
   def show(conn, %{"id" => bot_id}) do
     bot = Bots.get_bot(bot_id)
     render(conn, "show.json", bots: bot)
+  end
+
+  def delete(conn, %{"id" => bot_id}) do
+    bot = Bots.get_bot(bot_id)
+
+    case Bots.delete_bot(bot) do
+      {:ok, bot} ->
+        render(conn, "show.json", bots: bot)
+
+      {:error, changeset} ->
+        render(conn, "error.json", changeset: changeset)
+    end
   end
 end

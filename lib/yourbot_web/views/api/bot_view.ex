@@ -2,7 +2,7 @@ defmodule YourBotWeb.BotsView do
   use YourBotWeb, :view
 
   def render("index.json", %{bots: bots}) do
-    %{data: render_many(bots, YourBotWeb.BotsView, "show.json")}
+    %{data: render_many(bots, YourBotWeb.BotsView, "bot.json")}
   end
 
   def render("show.json", %{bots: bot}) do
