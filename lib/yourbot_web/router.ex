@@ -100,7 +100,6 @@ defmodule YourBotWeb.Router do
 
   def swagger_info do
     %{
-      schemes: ["http", "https", "ws", "wss"],
       securityDefinitions: %{
         Bearer: %{
           type: "apiKey",

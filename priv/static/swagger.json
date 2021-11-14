@@ -177,7 +177,7 @@
       "type": "object"
     }
   },
-  "host": "localhost:4000",
+  "host": "yourbotis.live:443",
   "info": {
     "title": "YourBot API",
     "version": "1.0"
@@ -413,12 +413,6 @@
   },
   "produces": [
     "application/json"
-  ],
-  "schemes": [
-    "http",
-    "https",
-    "ws",
-    "wss"
   ],
   "securityDefinitions": {
     "Bearer": {

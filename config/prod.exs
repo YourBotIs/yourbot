@@ -30,7 +30,7 @@ secret_key_base =
 #     """
 
 config :yourbot, YourBotWeb.Endpoint,
-  url: [host: "yourbotis.live", port: 80],
+  url: [scheme: "https", host: "yourbotis.live", port: 443],
   cache_static_manifest: "priv/static/cache_manifest.json",
   # force_ssl: [hsts: true],
   secret_key_base: secret_key_base,
