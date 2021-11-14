@@ -11,12 +11,20 @@ config :yourbot,
   namespace: YourBot,
   ecto_repos: [YourBot.Repo]
 
+dispatch = [
+  _: [
+    {"/api/bots/console", YourBotWeb.BotConsoleSocket, []},
+    {:_, Phoenix.Endpoint.Cowboy2Handler, {YourBotWeb.Endpoint, []}}
+  ]
+]
+
 # Configures the endpoint
 config :yourbot, YourBotWeb.Endpoint,
   url: [host: "localhost"],
   render_errors: [view: YourBotWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: YourBot.PubSub,
-  live_view: [signing_salt: "dSqTVT6t"]
+  live_view: [signing_salt: "dSqTVT6t"],
+  http: [dispatch: dispatch]
 
 # Configures the mailer
 #

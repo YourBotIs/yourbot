@@ -2,6 +2,7 @@ defmodule YourBot.BotSandbox do
   use GenServer
   import YourBot.BotNameProvider, only: [via: 2]
   alias YourBot.Bots.Bot
+  alias YourBot.Bots.Presence
   require Logger
 
   @endpoint YourBotWeb.Endpoint
@@ -19,6 +20,7 @@ defmodule YourBot.BotSandbox do
     # @endpoint.subscribe("crud:bots")
     python = System.find_executable("python3")
     sandbox_py = Application.app_dir(:yourbot, ["priv", "sandbox", "sandbox.py"])
+    {:ok, _presence} = Presence.track(self(), "bots", "#{bot.id}", default_presence())
 
     args = [
       sandbox_py,
@@ -44,6 +46,11 @@ defmodule YourBot.BotSandbox do
   end
 
   @impl GenServer
+  def terminate(_reason, state) do
+    _ = Presence.untrack(self(), "bots", "#{state.bot.id}")
+  end
+
+  @impl GenServer
   def handle_continue(:connect, state) do
     case Node.connect(:"#{state.bot.id}@#{node_name()}") do
       true ->
@@ -65,4 +72,10 @@ defmodule YourBot.BotSandbox do
   end
 
   def node_name, do: Application.get_env(:yourbot, __MODULE__)[:node_name]
+
+  def default_presence do
+    %{
+      started_at: DateTime.utc_now()
+    }
+  end
 end

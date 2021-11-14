@@ -14,6 +14,7 @@ defmodule YourBot.Application do
       YourBotWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: YourBot.PubSub},
+      YourBot.Bots.Presence,
       {Registry, keys: :unique, name: YourBot.BotNameProvider},
       YourBot.BotSupervisor,
       # Start the Endpoint (http/https)
