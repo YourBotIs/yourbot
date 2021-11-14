@@ -1,8 +1,9 @@
 defmodule YourBotWeb.UsersController do
   use YourBotWeb, :controller
   alias YourBot.Accounts
-
   use PhoenixSwagger
+
+  action_fallback YourBotWeb.FallbackController
 
   def swagger_definitions do
     %{
@@ -57,19 +58,6 @@ defmodule YourBotWeb.UsersController do
     }
   end
 
-  swagger_path :show do
-    get("/users/{discord_user_id}")
-    description("show a user")
-    security([%{Bearer: []}])
-    parameter(:discord_user_id, :path, :string, "Discord ID", required: true)
-    response(200, %{data: Schema.ref(:User)})
-  end
-
-  def show(conn, %{"id" => discord_user_id}) do
-    user = Accounts.get_user_by_discord_id(discord_user_id)
-    render(conn, "show.json", %{discord_oauth: user.discord_oauth})
-  end
-
   swagger_path :create do
     post("/users/")
     description("create a user")
@@ -83,13 +71,30 @@ defmodule YourBotWeb.UsersController do
       {:ok, %{discord_oauth: discord_oauth}} ->
         conn
         |> put_status(:created)
+        |> put_resp_header(
+          "location",
+          Routes.users_path(conn, :show, discord_oauth.discord_user_id)
+        )
         |> render("show.json", %{discord_oauth: discord_oauth})
 
       {:error, :user, changeset, _changes} ->
-        render(conn, "error.json", %{changeset: changeset})
+        {:error, changeset}
 
       {:error, :discord_oauth, changeset, _changes} ->
-        render(conn, "error.json", %{changeset: changeset})
+        {:error, changeset}
     end
+  end
+
+  swagger_path :show do
+    get("/users/{discord_user_id}")
+    description("show a user")
+    security([%{Bearer: []}])
+    parameter(:discord_user_id, :path, :string, "Discord ID", required: true)
+    response(200, %{data: Schema.ref(:User)})
+  end
+
+  def show(conn, %{"id" => discord_user_id}) do
+    user = Accounts.get_user_by_discord_id!(discord_user_id)
+    render(conn, "show.json", %{discord_oauth: user.discord_oauth})
   end
 end

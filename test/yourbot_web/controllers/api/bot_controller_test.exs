@@ -9,7 +9,7 @@ defmodule YourBotWeb.BotsControllerTest do
   test "create bot", %{discord_oauth: discord_oauth, conn: conn} do
     body =
       conn
-      |> post(Routes.bots_path(@endpoint, :create), %{
+      |> post(Routes.bots_path(conn, :create), %{
         user: discord_oauth.discord_user_id,
         bot: %{
           name: unique_name("bot name"),
@@ -32,7 +32,7 @@ defmodule YourBotWeb.BotsControllerTest do
   test "list bots", %{conn: conn, bot: bot} do
     body =
       conn
-      |> get(Routes.bots_path(@endpoint, :index))
+      |> get(Routes.bots_path(conn, :index))
       |> json_response(200)
 
     assert is_list(body["data"])
@@ -50,7 +50,7 @@ defmodule YourBotWeb.BotsControllerTest do
 
     body =
       conn
-      |> patch(Routes.bots_path(@endpoint, :update, bot), %{
+      |> patch(Routes.bots_path(conn, :update, bot), %{
         "bot" => %{
           "name" => updated_name
         }
@@ -67,7 +67,7 @@ defmodule YourBotWeb.BotsControllerTest do
   test "show bot", %{conn: conn, bot: bot} do
     body =
       conn
-      |> get(Routes.bots_path(@endpoint, :show, bot))
+      |> get(Routes.bots_path(conn, :show, bot))
       |> json_response(200)
 
     assert body["data"]["code"] == bot.code
@@ -78,15 +78,11 @@ defmodule YourBotWeb.BotsControllerTest do
   end
 
   test "delete bot", %{conn: conn, bot: bot} do
-    body =
-      conn
-      |> delete(Routes.bots_path(@endpoint, :delete, bot))
-      |> json_response(200)
+    conn = delete(conn, Routes.bots_path(conn, :delete, bot))
+    assert response(conn, 204)
 
-    assert body["data"]["code"] == bot.code
-    assert body["data"]["application_id"] == bot.application_id
-    assert body["data"]["public_key"] == bot.public_key
-    assert body["data"]["token"] == bot.token
-    assert body["data"]["name"] == bot.name
+    assert_error_sent 404, fn ->
+      get(conn, Routes.bots_path(conn, :show, bot))
+    end
   end
 end

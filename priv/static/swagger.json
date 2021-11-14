@@ -258,13 +258,7 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": {
-              "data": {
-                "$ref": "#/definitions/Bot"
-              }
-            }
-          }
+          "200": {}
         },
         "security": [
           {

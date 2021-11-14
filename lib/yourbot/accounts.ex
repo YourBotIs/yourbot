@@ -34,6 +34,17 @@ defmodule YourBot.Accounts do
     |> Repo.preload(:discord_oauth)
   end
 
+  def get_user_by_discord_id!(discord_id) do
+    Repo.one!(
+      from d in DiscordOauth,
+        where: d.discord_user_id == ^discord_id,
+        join: u in User,
+        on: u.discord_oauth_id == d.id,
+        select: u
+    )
+    |> Repo.preload(:discord_oauth)
+  end
+
   def change_discord_oauth(discord_oauth, attrs \\ %{}) do
     DiscordOauth.changeset(discord_oauth, attrs)
   end

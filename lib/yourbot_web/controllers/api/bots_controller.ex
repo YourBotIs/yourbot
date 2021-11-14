@@ -3,6 +3,8 @@ defmodule YourBotWeb.BotsController do
   alias YourBot.Bots
   alias YourBot.Accounts
 
+  action_fallback YourBotWeb.FallbackController
+
   use PhoenixSwagger
 
   def swagger_definitions do
@@ -83,14 +85,11 @@ defmodule YourBotWeb.BotsController do
   def create(conn, %{"bot" => params, "user" => discord_user_id}) do
     user = Accounts.get_user_by_discord_id(discord_user_id)
 
-    case Bots.create_bot(user, params) do
-      {:ok, bot} ->
-        conn
-        |> put_status(:created)
-        |> render("show.json", bots: bot)
-
-      {:error, changeset} ->
-        render(conn, "error.json", changeset: changeset)
+    with {:ok, bot} <- Bots.create_bot(user, params) do
+      conn
+      |> put_status(:created)
+      |> put_resp_header("location", Routes.bots_path(conn, :show, bot))
+      |> render("show.json", bots: bot)
     end
   end
 
@@ -106,13 +105,8 @@ defmodule YourBotWeb.BotsController do
   def update(conn, %{"id" => bot_id, "bot" => params}) do
     bot = Bots.get_bot(bot_id)
 
-    case YourBot.Bots.update_bot(bot, params) do
-      {:ok, bot} ->
-        conn
-        |> render("show.json", bots: bot)
-
-      {:error, changeset} ->
-        render(conn, "error.json", changeset: changeset)
+    with {:ok, bot} <- YourBot.Bots.update_bot(bot, params) do
+      render(conn, "show.json", bots: bot)
     end
   end
 
@@ -134,18 +128,14 @@ defmodule YourBotWeb.BotsController do
     description("update a bot")
     security([%{Bearer: []}])
     parameter(:bot_id, :path, :string, "Bot to update", required: true)
-    response(200, %{data: Schema.ref(:Bot)})
+    response(200, nil)
   end
 
   def delete(conn, %{"id" => bot_id}) do
     bot = Bots.get_bot(bot_id)
 
-    case Bots.delete_bot(bot) do
-      {:ok, bot} ->
-        render(conn, "show.json", bots: bot)
-
-      {:error, changeset} ->
-        render(conn, "error.json", changeset: changeset)
+    with {:ok, _bot} <- Bots.delete_bot(bot) do
+      send_resp(conn, :no_content, "")
     end
   end
 end
