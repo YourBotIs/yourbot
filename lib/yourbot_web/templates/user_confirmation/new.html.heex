@@ -10,7 +10,5 @@
 </.form>
 
 <p>
-  <%= link "Register with Discord", to: YourBotWeb.OAuth.Discord.login_url %> |
-  <%= link "Register", to: Routes.user_registration_path(@conn, :new) %> |
-  <%= link "Log in", to: Routes.user_session_path(@conn, :new) %>
+  <%= link "Login with Discord", to: YourBotWeb.OAuth.Discord.login_url %>
 </p>

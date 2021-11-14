@@ -3,7 +3,6 @@ defmodule YourBotWeb.UserAuth do
   import Phoenix.Controller
 
   alias YourBot.Accounts
-  alias YourBotWeb.Router.Helpers, as: Routes
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -134,7 +133,7 @@ defmodule YourBotWeb.UserAuth do
       conn
       |> put_flash(:error, "You must log in to access this page.")
       |> maybe_store_return_to()
-      |> redirect(to: Routes.user_session_path(conn, :new))
+      |> redirect(external: YourBotWeb.OAuth.Discord.login_url())
       |> halt()
     end
   end

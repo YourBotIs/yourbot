@@ -6,17 +6,16 @@ defmodule YourBot.AccountsFixtures do
   import YourBot.UniqueData
 
   def unique_user_email, do: unique_email("user")
-  def valid_user_password, do: "hello world!"
 
   def valid_user_attributes(attrs \\ %{}) do
     Enum.into(attrs, %{
-      email: unique_user_email(),
-      password: valid_user_password()
+      email: unique_user_email()
     })
   end
 
   def valid_discord_oauth_attributes(attrs \\ %{}) do
     Enum.into(attrs, %{
+      email: unique_user_email(),
       discord_user_id: unique_id(),
       avatar: unique_name("discord avatar"),
       username: unique_name("discord_username"),
@@ -27,7 +26,7 @@ defmodule YourBot.AccountsFixtures do
   def user_fixture(attrs \\ %{}) do
     attrs = valid_user_attributes(attrs)
     {:ok, user} = YourBot.Accounts.register_user(attrs)
-    %{user | password: attrs[:password]}
+    user
   end
 
   def extract_user_token(fun) do

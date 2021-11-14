@@ -15,4 +15,18 @@ defmodule YourBotWeb.UsersControllerTest do
     assert body["data"]["username"] == discord_oauth.username
     assert body["data"]["discriminator"] == discord_oauth.discriminator
   end
+
+  test "create user", %{conn: conn} do
+    attrs = valid_discord_oauth_attributes()
+
+    body =
+      conn
+      |> post(Routes.users_path(@endpoint, :create), %{discord_oauth: attrs})
+      |> json_response(201)
+
+    assert body["data"]["discord_user_id"] == attrs.discord_user_id
+    assert body["data"]["avatar"] == attrs.avatar
+    assert body["data"]["username"] == attrs.username
+    assert body["data"]["discriminator"] == attrs.discriminator
+  end
 end
