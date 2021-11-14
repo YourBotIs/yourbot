@@ -139,7 +139,10 @@ defmodule YourBotWeb.UserAuth do
   end
 
   def require_authenticated_api_token(conn, _opts) do
-    case get_req_header(conn, "bearer") do
+    case get_req_header(conn, "authorization") do
+      ["Bearer " <> token] ->
+        verify_api_token(conn, token)
+
       [token] ->
         verify_api_token(conn, token)
 

@@ -1,0 +1,448 @@
+{
+  "basePath": "/api",
+  "consumes": [
+    "application/json"
+  ],
+  "definitions": {
+    "Bot": {
+      "description": "Describes a bot object",
+      "example": {
+        "application_id": "123455",
+        "code": "print('hello, world')",
+        "name": "MiataBot",
+        "public_key": "12345",
+        "token": "super secret"
+      },
+      "properties": {
+        "application_id": {
+          "description": "Discord ID",
+          "type": "integer"
+        },
+        "code": {
+          "description": "Python code",
+          "type": "string"
+        },
+        "name": {
+          "description": "Unique Name of the Bot",
+          "type": "string"
+        },
+        "public_key": {
+          "description": "Discord public key",
+          "type": "string"
+        },
+        "token": {
+          "description": "Authentication token",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "public_key",
+        "application_id",
+        "token",
+        "name"
+      ],
+      "title": "Bot",
+      "type": "object"
+    },
+    "CreateBot": {
+      "description": "Params for creating a bot",
+      "example": {
+        "bot": {
+          "application_id": "123455",
+          "code": "print('hello, world')",
+          "name": "MiataBot",
+          "public_key": "12345",
+          "token": "super secret"
+        }
+      },
+      "properties": {
+        "bot": {
+          "properties": {
+            "application_id": {
+              "description": "Discord ID",
+              "type": "integer"
+            },
+            "code": {
+              "description": "Python code",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique Name of the Bot",
+              "type": "string"
+            },
+            "public_key": {
+              "description": "Discord public key",
+              "type": "string"
+            },
+            "token": {
+              "description": "Authentication token",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "public_key",
+            "application_id",
+            "token",
+            "name"
+          ],
+          "type": "object"
+        }
+      },
+      "title": "Create Bot",
+      "type": "object"
+    },
+    "CreateUser": {
+      "description": "Essentially the `me` object from Discord",
+      "example": {
+        "discord_oauth": {
+          "avatar": "fd01df5305fdb629a8333057e19bb41f",
+          "discord_user_id": "316741621498511363",
+          "discriminator": "0690",
+          "email": "konnorrigby@gmail.com",
+          "username": "PressY4Pie"
+        }
+      },
+      "properties": {
+        "discord_oauth": {
+          "properties": {
+            "avatar": {
+              "description": "User discord avatar",
+              "type": "string"
+            },
+            "discord_user_id": {
+              "description": "User discord id",
+              "type": "string"
+            },
+            "discriminator": {
+              "description": "User discord discriminator",
+              "type": "string"
+            },
+            "email": {
+              "description": "User email",
+              "type": "string"
+            },
+            "username": {
+              "description": "User discord username",
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "discriminator",
+            "avatar",
+            "username",
+            "discord_user_id"
+          ],
+          "type": "object"
+        }
+      },
+      "title": "Create User",
+      "type": "object"
+    },
+    "User": {
+      "description": "Essentially the `me` object from Discord",
+      "example": {
+        "avatar": "fd01df5305fdb629a8333057e19bb41f",
+        "discord_user_id": "316741621498511363",
+        "discriminator": "0690",
+        "username": "PressY4Pie"
+      },
+      "properties": {
+        "avatar": {
+          "description": "User discord avatar",
+          "type": "string"
+        },
+        "discord_user_id": {
+          "description": "User discord id",
+          "type": "string"
+        },
+        "discriminator": {
+          "description": "User discord discriminator",
+          "type": "string"
+        },
+        "username": {
+          "description": "User discord username",
+          "type": "string"
+        }
+      },
+      "required": [
+        "discriminator",
+        "avatar",
+        "username",
+        "discord_user_id"
+      ],
+      "title": "User",
+      "type": "object"
+    }
+  },
+  "host": "localhost:4000",
+  "info": {
+    "title": "YourBot API",
+    "version": "1.0"
+  },
+  "paths": {
+    "/bots": {
+      "get": {
+        "description": "list bots",
+        "operationId": "YourBotWeb.BotsController.index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/Bot"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Bots"
+        ]
+      },
+      "post": {
+        "description": "create a bot",
+        "operationId": "YourBotWeb.BotsController.create",
+        "parameters": [
+          {
+            "description": "bot to create",
+            "in": "body",
+            "name": "bot",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateBot"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/Bot"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Bots"
+        ]
+      }
+    },
+    "/bots/{bot_id}": {
+      "delete": {
+        "description": "update a bot",
+        "operationId": "YourBotWeb.BotsController.delete",
+        "parameters": [
+          {
+            "description": "Bot to update",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/Bot"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Bots"
+        ]
+      },
+      "get": {
+        "description": "update a bot",
+        "operationId": "YourBotWeb.BotsController.show",
+        "parameters": [
+          {
+            "description": "Bot to update",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/Bot"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Bots"
+        ]
+      },
+      "patch": {
+        "description": "update a bot",
+        "operationId": "YourBotWeb.BotsController.update",
+        "parameters": [
+          {
+            "description": "Bot to update",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "bot to update",
+            "in": "body",
+            "name": "bot",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateBot"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/Bot"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Bots"
+        ]
+      }
+    },
+    "/users/": {
+      "post": {
+        "description": "create a user",
+        "operationId": "YourBotWeb.UsersController.create",
+        "parameters": [
+          {
+            "description": "User to create",
+            "in": "body",
+            "name": "discord_oauth",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateUser"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/User"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{discord_user_id}": {
+      "get": {
+        "description": "show a user",
+        "operationId": "YourBotWeb.UsersController.show",
+        "parameters": [
+          {
+            "description": "Discord ID",
+            "in": "path",
+            "name": "discord_user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/User"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Users"
+        ]
+      }
+    }
+  },
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https",
+    "ws",
+    "wss"
+  ],
+  "securityDefinitions": {
+    "Bearer": {
+      "description": "API Token must be provided via `Authorization: Bearer ` header",
+      "in": "header",
+      "name": "Authorization",
+      "type": "apiKey"
+    }
+  },
+  "swagger": "2.0",
+  "tags": [
+    {
+      "description": "Operations about Users",
+      "name": "Users"
+    },
+    {
+      "description": "Operations about Bots",
+      "name": "Bots"
+    }
+  ]
+}

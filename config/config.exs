@@ -61,6 +61,18 @@ config :yourbot, YourBotWeb.OAuth.Discord,
   redirect_url: System.get_env("DISCORD_OAUTH_REDIRECT_URL"),
   url: System.get_env("DISCORD_OAUTH_URL")
 
+config :yourbot, :phoenix_swagger,
+  swagger_files: %{
+    "priv/static/swagger.json" => [
+      # phoenix routes will be converted to swagger paths
+      router: YourBotWeb.Router,
+      # (optional) endpoint config used to set host, port and https schemes.
+      endpoint: YourBotWeb.Endpoint
+    ]
+  }
+
+config :phoenix_swagger, json_library: Jason
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

@@ -54,10 +54,10 @@ config :yourbot, YourBotWeb.Endpoint,
 
 # Watch static and templates for browser reloading.
 config :yourbot, YourBotWeb.Endpoint,
-  reloadable_compilers: [:gettext, :elixir, :surface],
+  reloadable_compilers: [:gettext, :elixir, :surface, :phoenix_swagger],
   live_reload: [
     patterns: [
-      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg|json)$",
       ~r"priv/gettext/.*(po)$",
       ~r"lib/yourbot_web/(live|views|components)/.*(ex|sface|js)$",
       ~r"lib/yourbot_web/templates/.*(eex)$",

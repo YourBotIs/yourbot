@@ -1,9 +1,8 @@
 defmodule YourBotWeb.Router do
   use YourBotWeb, :router
-
   import Surface.Catalogue.Router
-
   import YourBotWeb.UserAuth
+  use PhoenixSwagger
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -17,6 +16,10 @@ defmodule YourBotWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  scope "/api/swagger" do
+    forward "/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :yourbot, swagger_file: "swagger.json"
   end
 
   scope "/api", YourBotWeb do
@@ -93,5 +96,30 @@ defmodule YourBotWeb.Router do
       pipe_through :browser
       surface_catalogue("/catalogue")
     end
+  end
+
+  def swagger_info do
+    %{
+      schemes: ["http", "https", "ws", "wss"],
+      securityDefinitions: %{
+        Bearer: %{
+          type: "apiKey",
+          name: "Authorization",
+          description: "API Token must be provided via `Authorization: Bearer ` header",
+          in: "header"
+        }
+      },
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      basePath: "/api",
+      info: %{
+        version: "1.0",
+        title: "YourBot API"
+      },
+      tags: [
+        %{name: "Users", description: "Operations about Users"},
+        %{name: "Bots", description: "Operations about Bots"}
+      ]
+    }
   end
 end

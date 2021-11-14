@@ -7,7 +7,7 @@ defmodule YourBot.MixProject do
       version: "0.1.0",
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:gettext] ++ Mix.compilers() ++ [:surface],
+      compilers: [:gettext] ++ Mix.compilers() ++ [:surface, :phoenix_swagger],
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -73,7 +73,9 @@ defmodule YourBot.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:tesla, "~> 1.4"},
       {:wallaby, "~> 0.29.1", only: :test},
-      {:x509, "~> 0.8.3"}
+      {:x509, "~> 0.8.3"},
+      {:phoenix_swagger, "~> 0.8"},
+      {:ex_json_schema, "~> 0.5"}
     ]
   end
 
