@@ -16,7 +16,8 @@ defmodule YourBotWeb.DiscordOAuthController do
     with {:ok, me} <- OAuth.me(client) do
       case Accounts.get_user_by_discord_id(me["id"]) do
         nil ->
-          {:ok, %{user: user}} = Accounts.discord_oauth_registration(me)
+          {:ok, %{user: user}} =
+            Accounts.discord_oauth_registration(put_in(me, ["discord_user_id"], me["id"]))
 
           conn
           |> UserAuth.log_in_user(user, me)
