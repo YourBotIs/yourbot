@@ -8,6 +8,15 @@ defmodule YourBotWeb.UsersView do
     }
   end
 
+  def render("show.json", %{token: token}) do
+    %{data: render_one(token, YourBotWeb.UsersView, "api_token.json", as: :token)}
+  end
+
+  def render("api_token.json", %{token: token}) do
+    fields = YourBot.Accounts.APIToken.fields(token)
+    Map.put(fields, :token, token.token)
+  end
+
   def render("discord_oauth.json", %{discord_oauth: discord_oauth}) do
     %{
       discord_user_id: discord_oauth.discord_user_id,

@@ -4,6 +4,21 @@ defmodule YourBotWeb.UsersControllerTest do
 
   setup [:setup_user, :setup_discord_oauth, :setup_api_token]
 
+  test "generate a new api token", %{conn: conn, discord_oauth: discord_oauth} do
+    body =
+      conn
+      |> post(Routes.users_path(conn, :token, discord_oauth.discord_user_id))
+      |> json_response(201)
+
+    assert token_binary = body["data"]["token"]
+    assert token = YourBot.Repo.get_by(YourBot.Accounts.APIToken, token: token_binary)
+    fields = YourBot.Accounts.APIToken.fields(token)
+
+    for {field, value} <- fields do
+      assert body["data"][field] == value
+    end
+  end
+
   test "show user", %{conn: conn, discord_oauth: discord_oauth} do
     body =
       conn

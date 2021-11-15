@@ -54,6 +54,19 @@ defmodule YourBotWeb.UsersController do
               email: "konnorrigby@gmail.com"
             }
           })
+        end,
+      UserToken:
+        swagger_schema do
+          title("User Token")
+          description("used for controlling a bot")
+
+          properties do
+            exp(:integer, "When the token expires", required: true)
+            iss(:string, "hostname that issued the token", required: true)
+            nonce(:string, "random nonce", required: true)
+            user_id(:integer, "user who the token is good for")
+            encoded(:string, "all of the above fields but encoded as a jwt", required: true)
+          end
         end
     }
   end
@@ -96,5 +109,22 @@ defmodule YourBotWeb.UsersController do
   def show(conn, %{"id" => discord_user_id}) do
     user = Accounts.get_user_by_discord_id!(discord_user_id)
     render(conn, "show.json", %{discord_oauth: user.discord_oauth})
+  end
+
+  swagger_path :token do
+    post("/users/{discord_user_id}/token")
+    description("generate a token for a user")
+    security([%{Bearer: []}])
+    parameter(:discord_user_id, :path, :string, "Discord ID", required: true)
+    response(200, %{data: Schema.ref(:UserToken)})
+  end
+
+  def token(conn, %{"id" => discord_user_id}) do
+    user = Accounts.get_user_by_discord_id!(discord_user_id)
+    token = Accounts.APIToken.generate(user)
+
+    conn
+    |> put_status(:created)
+    |> render("show.json", %{token: token})
   end
 end

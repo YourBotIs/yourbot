@@ -22,6 +22,12 @@
           "description": "Python code",
           "type": "string"
         },
+        "deploy_status": {
+          "description": {
+            "$ref": "#/definitions/BotDeployStatus"
+          },
+          "type": "string"
+        },
         "name": {
           "description": "Unique Name of the Bot",
           "type": "string"
@@ -36,6 +42,7 @@
         }
       },
       "required": [
+        "deploy_status",
         "code",
         "public_key",
         "application_id",
@@ -43,6 +50,16 @@
         "name"
       ],
       "title": "Bot",
+      "type": "object"
+    },
+    "BotDeployStatus": {
+      "description": "Values are changed in the websocket connection",
+      "enum": [
+        "live",
+        "stop",
+        "error"
+      ],
+      "title": "Bot deployment status",
       "type": "object"
     },
     "CreateBot": {
@@ -175,9 +192,42 @@
       ],
       "title": "User",
       "type": "object"
+    },
+    "UserToken": {
+      "description": "used for controlling a bot",
+      "properties": {
+        "encoded": {
+          "description": "all of the above fields but encoded as a jwt",
+          "type": "string"
+        },
+        "exp": {
+          "description": "When the token expires",
+          "type": "integer"
+        },
+        "iss": {
+          "description": "hostname that issued the token",
+          "type": "string"
+        },
+        "nonce": {
+          "description": "random nonce",
+          "type": "string"
+        },
+        "user_id": {
+          "description": "user who the token is good for",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "encoded",
+        "nonce",
+        "iss",
+        "exp"
+      ],
+      "title": "User Token",
+      "type": "object"
     }
   },
-  "host": "yourbotis.live:443",
+  "host": "localhost:4000",
   "info": {
     "title": "YourBot API",
     "version": "1.0"
@@ -395,6 +445,39 @@
             "description": {
               "data": {
                 "$ref": "#/definitions/User"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{discord_user_id}/token": {
+      "post": {
+        "description": "generate a token for a user",
+        "operationId": "YourBotWeb.UsersController.token",
+        "parameters": [
+          {
+            "description": "Discord ID",
+            "in": "path",
+            "name": "discord_user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/UserToken"
               }
             }
           }
