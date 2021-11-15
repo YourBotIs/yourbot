@@ -19,6 +19,7 @@ defmodule YourBot.Application do
       YourBot.BotSupervisor,
       # Start the Endpoint (http/https)
       YourBotWeb.Endpoint,
+      {SocketDrano, refs: :all},
       {Task, &populate_bot_sandboxes/0}
       # Start a worker by calling: YourBot.Worker.start_link(arg)
       # {YourBot.Worker, arg}

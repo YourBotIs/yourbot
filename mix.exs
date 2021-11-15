@@ -76,7 +76,8 @@ defmodule YourBot.MixProject do
       {:x509, "~> 0.8.3"},
       {:phoenix_swagger, "~> 0.8"},
       {:ex_json_schema, "~> 0.5"},
-      {:phoenix_markdown, "~> 1.0"}
+      {:phoenix_markdown, "~> 1.0"},
+      {:socket_drano, "~> 0.5.0"}
     ]
   end
 
