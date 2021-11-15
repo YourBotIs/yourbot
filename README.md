@@ -2,6 +2,12 @@
 
 Web Application for building and hosting Discord bots.
 
+## Get Involved
+
+This is a early days project pushed forwared by a couple developers for fun.
+If you are interested in helping out or just bugging us, check out our
+[Discord Server](https://discord.gg/fC9ahTpGMz)
+
 ## Development
 
 * Install Erlang and Elixir via [asdf-vm](https://github.com/asdf-vm/asdf-elixir)
