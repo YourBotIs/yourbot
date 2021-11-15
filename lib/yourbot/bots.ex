@@ -12,6 +12,10 @@ defmodule YourBot.Bots do
     |> Enum.map(&load_code/1)
   end
 
+  def list_started_bots() do
+    Repo.all(from b in Bot, where: b.deploy_status != :stop)
+  end
+
   def list_bots(user) do
     bot_ids =
       Repo.all(
@@ -68,6 +72,13 @@ defmodule YourBot.Bots do
       {:error, changeset} ->
         {:error, changeset}
     end
+  end
+
+  def update_bot_deploy_status(bot, status) do
+    changeset = Bot.deploy_changeset(bot, status)
+    updated_bot = Repo.update!(changeset)
+    @endpoint.broadcast!("crud:bots", "update", %{new: updated_bot, old: bot})
+    bot
   end
 
   def delete_bot(bot) do

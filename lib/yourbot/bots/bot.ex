@@ -10,6 +10,7 @@ defmodule YourBot.Bots.Bot do
     field :application_id, Snowflake, null: false
     field :public_key, :string, null: false
     field :code, :string, virtual: true
+    field :deploy_status, Ecto.Enum, values: [:live, :stop, :edit, :error]
     timestamps()
   end
 
@@ -19,6 +20,12 @@ defmodule YourBot.Bots.Bot do
     |> validate_required([:name, :token, :application_id, :public_key])
     |> unique_constraint([:name])
     |> unique_constraint([:application_id])
+  end
+
+  def deploy_changeset(bot, status) do
+    bot
+    |> cast(%{deploy_status: status}, [:deploy_status])
+    |> validate_required([:deploy_status])
   end
 
   def code_template(bot) do

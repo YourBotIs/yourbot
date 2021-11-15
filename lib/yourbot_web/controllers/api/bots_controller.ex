@@ -9,6 +9,12 @@ defmodule YourBotWeb.BotsController do
 
   def swagger_definitions do
     %{
+      BotDeployStatus:
+        swagger_schema do
+          title("Bot deployment status")
+          description("Values are changed in the websocket connection")
+          enum(["live", "stop", "error"])
+        end,
       Bot:
         swagger_schema do
           title("Bot")
@@ -20,6 +26,7 @@ defmodule YourBotWeb.BotsController do
             application_id(:integer, "Discord ID", required: true)
             public_key(:string, "Discord public key", required: true)
             code(:string, "Python code", required: true)
+            deploy_status(:string, Schema.ref(:BotDeployStatus), required: true)
           end
 
           example(%{

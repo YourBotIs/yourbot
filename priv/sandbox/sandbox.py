@@ -10,6 +10,7 @@ import asyncio
 import os
 
 from term import Atom
+from term import Pid
 from pyrlang.gen.server import GenServer
 from pyrlang.gen.decorators import call, cast, info
 from pyrlang import Node
@@ -30,13 +31,14 @@ class Sandbox(GenServer):
     def __init__(self, node) -> None:
         super().__init__()
 
-    @cast(1, lambda msg: type(msg) == tuple and msg[0] == Atom("code"))
+    @cast(1, lambda msg: type(msg) == tuple and msg[0] == Atom("code") and type(msg[2]) == Pid)
     def handle_cast(self, msg):
         try:
-            os.chroot("/var/chroot")
-            os.chdir("/")
+            # os.chroot("/var/chroot")
+            # os.chdir("/")
             code = compile(msg[1], "client.py", "exec")
-            exec(code)
+            exec(code, globals(), globals())
+            # self.node.send_nowait()
         except:
             traceback.print_exc()
             reason = str(sys.exc_info()[1]).encode('utf-8')
@@ -44,7 +46,7 @@ class Sandbox(GenServer):
             st = [(bytes(o.name, 'utf-8'), bytes(o.filename, 'utf-8'), o.lineno)
                   for o in summary]
             logger.info(st)
-
+            sys.exit("crash")
 
 def main():
     parser = argparse.ArgumentParser(description="Sandbox.py")

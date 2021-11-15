@@ -11,8 +11,9 @@ defmodule YourBot.BotSandbox do
     GenServer.start_link(__MODULE__, bot, name: via(bot, __MODULE__))
   end
 
-  def exec_code(bot) do
-    GenServer.cast({__MODULE__, :"#{bot.id}@#{node_name()}"}, {:code, bot.code})
+  def exec_code(bot, pid \\ nil) do
+    pid = pid || GenServer.whereis(via(bot, __MODULE__))
+    GenServer.cast({__MODULE__, :"#{bot.id}@#{node_name()}"}, {:code, bot.code, pid})
   end
 
   @impl GenServer
@@ -56,7 +57,9 @@ defmodule YourBot.BotSandbox do
       true ->
         Logger.info("Connected to #{state.bot.id}@#{node_name()}")
         Node.monitor(:"#{state.bot.id}@#{node_name()}", true)
-        {:noreply, state}
+        bot = YourBot.Bots.update_bot_deploy_status(state.bot, "live")
+
+        {:noreply, %{state | bot: bot}, {:continue, :exec_code}}
 
       false ->
         Logger.warn("Failed to connect to #{state.bot.id}@#{node_name()}")
@@ -65,10 +68,22 @@ defmodule YourBot.BotSandbox do
     end
   end
 
+  def handle_continue(:exec_code, state) do
+    # internal continue method to start the discord client after the node is up
+    :ok = exec_code(state.bot, self())
+    {:noreply, state}
+  end
+
   @impl GenServer
   def handle_info({:tty_data, data}, state) do
+    Logger.debug(%{tty_data: data, bot: state.bot.id})
     @endpoint.broadcast!("sandbox", "tty_data", %{bot: state.bot, data: data})
     {:noreply, state}
+  end
+
+  def handle_info({:nodedown, _node}, state) do
+    bot = YourBot.Bots.update_bot_deploy_status(state.bot, "error")
+    {:stop, :nodedown, %{state | bot: bot}}
   end
 
   def node_name, do: Application.get_env(:yourbot, __MODULE__)[:node_name]

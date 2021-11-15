@@ -18,7 +18,8 @@ defmodule YourBot.Application do
       {Registry, keys: :unique, name: YourBot.BotNameProvider},
       YourBot.BotSupervisor,
       # Start the Endpoint (http/https)
-      YourBotWeb.Endpoint
+      YourBotWeb.Endpoint,
+      {Task, &populate_bot_sandboxes/0}
       # Start a worker by calling: YourBot.Worker.start_link(arg)
       # {YourBot.Worker, arg}
     ]
@@ -35,5 +36,11 @@ defmodule YourBot.Application do
   def config_change(changed, _new, removed) do
     YourBotWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  def populate_bot_sandboxes do
+    for bot <- YourBot.Bots.list_started_bots() do
+      YourBot.BotSupervisor.start_child(bot)
+    end
   end
 end

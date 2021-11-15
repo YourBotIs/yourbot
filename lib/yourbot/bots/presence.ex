@@ -59,6 +59,10 @@ defmodule YourBot.Bots.Presence do
 
   def find(_, default), do: default
 
+  def into_meta(meta) do
+    Map.take(meta, @allowed_fields)
+  end
+
   defp merge_metas(%{metas: metas}) do
     # The most current meta is head of the list so we
     # accumulate that first and merge everthing else into it

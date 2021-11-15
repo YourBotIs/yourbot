@@ -53,9 +53,10 @@ defmodule YourBotWeb.BotConsoleSocket do
   # This function is where you might want to  implement `Phoenix.Presence`, schedule an `after_join` message etc.
   @impl :cowboy_websocket
   def websocket_init(socket) do
-    socket.endpoint.subscribe("sandbox")
+    socket.endpoint.subscribe("bots")
+    bot = sync_bot(socket.assigns.bot, nil)
     Process.send_after(self(), :send_ping, 5000)
-    {[], socket}
+    {[], socket |> assign(:bot, bot)}
   end
 
   @impl :cowboy_websocket
@@ -82,37 +83,6 @@ defmodule YourBotWeb.BotConsoleSocket do
     end
   end
 
-  def handle_command(%{"kind" => "stop_sandbox"}, socket) do
-    bot = socket.assigns.bot
-
-    if pid = GenServer.whereis(YourBot.BotNameProvider.via(bot, YourBot.BotSandbox)) do
-      DynamicSupervisor.terminate_child(YourBot.BotSupervisor, pid)
-    end
-
-    case YourBot.BotSupervisor.start_child(bot) do
-      {:ok, _pid} ->
-        {[{:text, Jason.encode!(%{"status" => "ok"})}], socket}
-    end
-  end
-
-  def handle_command(%{"kind" => "deploy_sandbox"}, socket) do
-    bot = socket.assigns.bot
-
-    if pid = GenServer.whereis(YourBot.BotNameProvider.via(bot, YourBot.BotSandbox)) do
-      DynamicSupervisor.terminate_child(YourBot.BotSupervisor, pid)
-    end
-
-    case YourBot.BotSupervisor.start_child(bot) do
-      {:ok, _pid} ->
-        YourBot.BotSandbox.exec_code(bot)
-        {[{:text, Jason.encode!(%{"status" => "ok"})}], socket}
-    end
-  end
-
-  def handle_command(_command, socket) do
-    {[{:text, Jason.encode!(%{errors: ["unknown command"]})}], socket}
-  end
-
   # This function is where we will process all *other* messages that get delivered to the
   # process mailbox. This function isn't used in this handler.
   @impl :cowboy_websocket
@@ -122,12 +92,44 @@ defmodule YourBotWeb.BotConsoleSocket do
     {[:ping], socket}
   end
 
+  def websocket_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: presence}, socket) do
+    bot = sync_bot(socket.assigns.bot, presence)
+    {[], assign(socket, :bot, bot)}
+  end
+
   def websocket_info(_info, socket), do: {[], socket}
+
+  def handle_command(_command, socket) do
+    {[{:text, Jason.encode!(%{errors: ["unknown command"]})}], socket}
+  end
 
   def into_socket(req, _opts) do
     %Phoenix.Socket{
       endpoint: YourBotWeb.Endpoint,
       private: %{req: req}
     }
+  end
+
+  defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, nil) do
+    joins = Map.put(%{}, to_string(id), YourBot.Bots.Presence.find(bot))
+    sync_bot(bot, %{joins: joins})
+  end
+
+  defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, payload) when is_map(payload) do
+    id = to_string(id)
+    joins = Map.get(payload, :joins, %{})
+    leaves = Map.get(payload, :leaves, %{})
+
+    cond do
+      meta = joins[id] ->
+        updates = YourBot.Bots.Presence.into_meta(meta)
+        Map.merge(bot, updates)
+
+      leaves[id] ->
+        bot
+
+      true ->
+        bot
+    end
   end
 end
