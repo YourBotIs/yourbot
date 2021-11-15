@@ -33,6 +33,8 @@ defmodule YourBotWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+    get "/tos", PageController, :tos
+    get "/privacy-policy", PageController, :privacy_policy
     live "/demo", Demo
   end
 

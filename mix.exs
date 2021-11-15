@@ -75,7 +75,8 @@ defmodule YourBot.MixProject do
       {:wallaby, "~> 0.29.1", only: :test},
       {:x509, "~> 0.8.3"},
       {:phoenix_swagger, "~> 0.8"},
-      {:ex_json_schema, "~> 0.5"}
+      {:ex_json_schema, "~> 0.5"},
+      {:phoenix_markdown, "~> 1.0"}
     ]
   end
 
