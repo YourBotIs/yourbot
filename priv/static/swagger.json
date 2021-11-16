@@ -463,7 +463,7 @@
     "/users/{discord_user_id}/bots": {
       "get": {
         "description": "list bots",
-        "operationId": "YourBotWeb.BotsController.for_user",
+        "operationId": "YourBotWeb.BotsController.show_bots_for_user",
         "parameters": [
           {
             "description": "User whose bots to list",

@@ -85,4 +85,14 @@ defmodule YourBotWeb.BotsControllerTest do
       get(conn, Routes.bots_path(conn, :show, bot))
     end
   end
+
+  test "lists bots for a user", %{conn: conn, discord_oauth: discord_oauth, bot: bot} do
+    conn = get(conn, Routes.bots_path(conn, :show_bots_for_user, discord_oauth.discord_user_id))
+    assert body = json_response(conn, 200)
+    assert is_list(body["data"])
+
+    assert Enum.find(body["data"], fn %{"id" => id} ->
+             id == bot.id
+           end)
+  end
 end
