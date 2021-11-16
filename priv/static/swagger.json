@@ -460,6 +460,42 @@
         ]
       }
     },
+    "/users/{discord_user_id}/bots": {
+      "get": {
+        "description": "list bots",
+        "operationId": "YourBotWeb.BotsController.for_user",
+        "parameters": [
+          {
+            "description": "User whose bots to list",
+            "in": "path",
+            "name": "discord_user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/Bot"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Bots"
+        ]
+      }
+    },
     "/users/{discord_user_id}/token": {
       "post": {
         "description": "generate a token for a user",

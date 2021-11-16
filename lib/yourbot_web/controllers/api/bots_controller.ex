@@ -145,4 +145,18 @@ defmodule YourBotWeb.BotsController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  swagger_path :for_user do
+    get("/users/{discord_user_id}/bots")
+    description("list bots")
+    security([%{Bearer: []}])
+    parameter(:discord_user_id, :path, :string, "User whose bots to list", required: true)
+    response(200, %{data: Schema.array(:Bot)})
+  end
+
+  def for_user(conn, %{"id" => discord_user_id}) do
+    user = Accounts.get_user_by_discord_id!(discord_user_id)
+    bots = Bots.list_bots(user)
+    render(conn, "index.json", bots: bots)
+  end
 end
