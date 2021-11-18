@@ -70,21 +70,26 @@ defmodule YourBotWeb.BotLive do
   def handle_event("select_bot", %{"bot_id" => bot_id}, socket) do
     bot_changeset =
       Bots.get_bot(bot_id)
+      |> sync_bot(nil)
       |> Bots.change_bot()
 
-    tty_data = YourBot.BotSandbox.get_stdout(bot_changeset.data) |> Enum.join()
+    socket =
+      if YourBot.BotSupervisor.lookup_child(bot_changeset.data) do
+        tty_data = YourBot.BotSandbox.get_stdout(bot_changeset.data) |> Enum.join()
+        push_event(socket, "sandbox", %{"tty_data" => tty_data})
+      else
+        socket
+      end
 
     {:noreply,
      socket
      |> assign(:bot_changeset, bot_changeset)
      |> assign(:action, :edit)
-     |> push_event(:monaco_load, %{value: bot_changeset.data.code})
-     |> push_event("sandbox", %{"tty_data" => tty_data})}
+     |> push_event(:monaco_load, %{value: bot_changeset.data.code})}
   end
 
   def handle_event("monaco_change", %{"value" => code}, socket) do
     changeset = Bots.change_bot(socket.assigns.bot_changeset.data, %{code: code})
-    Logger.info(%{changeset: changeset})
 
     {:noreply,
      socket
@@ -109,7 +114,7 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("restart_code", %{"bot" => bot_id}, socket) do
-    bot_changeset = Bots.get_bot(bot_id) |> Bots.change_bot()
+    bot_changeset = Bots.get_bot(bot_id) |> sync_bot(nil) |> Bots.change_bot()
 
     if pid =
          GenServer.whereis(YourBot.BotNameProvider.via(bot_changeset.data, YourBot.BotSandbox)) do
@@ -172,7 +177,9 @@ defmodule YourBotWeb.BotLive do
         sync_bot(bot, presence)
       end)
 
-    {:noreply, socket |> assign(:bots, bots)}
+    bot_changeset = sync_bot(socket.assigns.bot_changeset.data, presence) |> Bots.change_bot()
+
+    {:noreply, socket |> assign(:bots, bots) |> assign(:bot_changeset, bot_changeset)}
   end
 
   def create_bot(params, socket) do
@@ -250,6 +257,7 @@ defmodule YourBotWeb.BotLive do
             <Button class="button is-rounded is-primary" click="save_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
             <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
             <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
+            {@bot_changeset.data.uptime_status}
           </div>
           <XTerm id="terminal"/>
         </section>
