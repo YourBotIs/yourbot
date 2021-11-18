@@ -34,8 +34,8 @@ class Sandbox(GenServer):
     @cast(1, lambda msg: type(msg) == tuple and msg[0] == Atom("code") and type(msg[2]) == Pid)
     def handle_cast(self, msg):
         try:
-            # os.chroot("/var/chroot")
-            # os.chdir("/")
+            os.chroot("/var/chroot")
+            os.chdir("/")
             code = compile(msg[1], "client.py", "exec")
             exec(code, globals(), globals())
             # self.node.send_nowait()
