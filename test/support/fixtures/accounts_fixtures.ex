@@ -47,7 +47,7 @@ defmodule YourBot.AccountsFixtures do
   end
 
   def setup_api_token(env) do
-    %{token: token} = YourBot.Accounts.APIToken.generate(env.user)
+    %{token: token} = YourBot.Accounts.APIToken.generate(env.user, :admin)
     conn = Plug.Conn.put_req_header(env.conn, "authorization", "Bearer " <> token)
     %{env | conn: conn}
   end

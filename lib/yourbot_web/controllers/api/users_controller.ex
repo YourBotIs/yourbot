@@ -121,7 +121,7 @@ defmodule YourBotWeb.UsersController do
 
   def token(conn, %{"id" => discord_user_id}) do
     user = Accounts.get_user_by_discord_id!(discord_user_id)
-    token = Accounts.APIToken.generate(user)
+    token = Accounts.APIToken.generate(user, :user)
 
     conn
     |> put_status(:created)
