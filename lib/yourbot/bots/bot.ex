@@ -9,8 +9,9 @@ defmodule YourBot.Bots.Bot do
     field :token, :string, null: false, redact: true
     field :application_id, Snowflake, null: false
     field :public_key, :string, null: false
-    field :code, :string, virtual: true
+    field :code, :string, virtual: true, redact: true
     field :deploy_status, Ecto.Enum, values: [:live, :stop, :edit, :error]
+    field :uptime_status, Ecto.Enum, values: [:boot, :up, :down], virtual: true
     timestamps()
   end
 

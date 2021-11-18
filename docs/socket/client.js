@@ -1,8 +1,9 @@
-var WebSocket = require('faye-websocket')
+var WebSocket = require('faye-websocket');
+var repl = require("repl");
 
 const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzcyNDk0NTYsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDAwMCIsIm5vbmNlIjoiQkFFMjhCMkI4NzA0OURCMzdBQTdFMzI4QkZERDM5MjhBOUMzQTZFMDkyQkYxQUFFQUM2Q0IzRkEyNUNDRTg4NjcxNTczRDIyMUQzNzc4NEUyNjA1RUM4NEY4MTQ3QzcwMUNGMTNDNEYyOUIyMjVGOTM1MDU3NUQyRTM2MkZGQUYiLCJzY29wZSI6ImFkbWluIiwidXNlcl9pZCI6MX0.zduRBHYb0ceCg5uE2AO0anKvoYl9iTVaN0bpxZXU7js"
 const bot_id = 1;
-const url = 'ws://localhost:4000/api/bots/console?authorization=' + token + "&bot_id=" + bot_id
+const url = 'ws://localhost:4000/api/bots/console?authorization=' + token + "&bot_id=" + bot_id;
 
 class RPC {
   constructor(id, kind, action, args) {
@@ -28,6 +29,7 @@ class BotSocket {
     this.ws = null;
     // A object that will be used to store promises and unresolved RPCs
     this.rpcs = {};
+    this.status = {};
   }
 
   /**
@@ -111,8 +113,22 @@ class BotSocket {
         item.resolve(reply.args);
         delete this.rpcs[data["id"]];
       }
-    } else {
-      console.log("unknown response", data)
+
+      // broadcast messages aren't replies, so they need to be handled 
+      // elsewhere. This is kinda ugly and might need to be updated 
+      // to be more readable
+    } else if (reply.kind === 'sandbox') {
+      if (reply.action === 'tty_data') {
+        process.stdout.write(reply.args.message);
+      } else if (reply.action === 'status') {
+        this.status = reply.args;
+      }
+    }
+
+    // Catch all log message. maybe there's something more interesting
+    // to do w/ this data.
+    else {
+      console.log("unknown RPC from the server", data)
     }
   }
 
@@ -176,6 +192,15 @@ socket.connect()
       .catch(function (error) {
         console.log("error resolving rpc", error)
       });
+
+    //A "local" node repl with a custom prompt
+    var local = repl.start("yourbot> ");
+    local.context.socket = socket;
+    local.context.rpc = async function(kind, action, args) {
+      var result = await socket.rpc(kind, action, args);
+      console.log(kind, action, result);
+      return result
+    };
   })
   // Called if the server rejects our token or just isn't online.
   .catch(function (event) {

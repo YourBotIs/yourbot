@@ -14,10 +14,14 @@ defmodule YourBotWeb.BotLive do
 
   def mount(_, %{"user_token" => token}, socket) do
     user = Accounts.get_user_by_session_token(token)
-    bots = Bots.list_bots(user)
+
+    bots =
+      Bots.list_bots(user)
+      |> Enum.map(fn bot -> sync_bot(bot, nil) end)
+
     bot_changeset = Bots.change_bot(%Bot{})
     socket.endpoint.subscribe("crud:bots")
-    socket.endpoint.subscribe("sandbox")
+    socket.endpoint.subscribe("bots")
 
     {:ok,
      socket
@@ -68,11 +72,14 @@ defmodule YourBotWeb.BotLive do
       Bots.get_bot(bot_id)
       |> Bots.change_bot()
 
+    tty_data = YourBot.BotSandbox.get_stdout(bot_changeset.data) |> Enum.join()
+
     {:noreply,
      socket
      |> assign(:bot_changeset, bot_changeset)
      |> assign(:action, :edit)
-     |> push_event(:monaco_load, %{value: bot_changeset.data.code})}
+     |> push_event(:monaco_load, %{value: bot_changeset.data.code})
+     |> push_event("sandbox", %{"tty_data" => tty_data})}
   end
 
   def handle_event("monaco_change", %{"value" => code}, socket) do
@@ -118,13 +125,17 @@ defmodule YourBotWeb.BotLive do
     end
   end
 
-  def handle_event("run_code", %{"bot" => _}, socket) do
-    YourBot.BotSandbox.exec_code(socket.assigns.bot_changeset.data)
+  def handle_event("stop_code", %{"bot" => bot_id}, socket) do
+    YourBot.Bots.get_bot(bot_id)
+    |> YourBot.BotSupervisor.terminate_child()
+
     {:noreply, socket}
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{topic: "crud:bots"}, socket) do
-    bots = Bots.list_bots(socket.assigns.user)
+    bots =
+      Bots.list_bots(socket.assigns.user)
+      |> Enum.map(fn bot -> sync_bot(bot, nil) end)
 
     {:noreply,
      socket
@@ -133,7 +144,7 @@ defmodule YourBotWeb.BotLive do
 
   def handle_info(
         %Phoenix.Socket.Broadcast{
-          topic: "sandbox",
+          topic: "bots",
           event: "tty_data",
           payload: %{bot: bot, data: tty_data}
         },
@@ -146,6 +157,22 @@ defmodule YourBotWeb.BotLive do
     else
       {:noreply, socket}
     end
+  end
+
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          topic: "bots",
+          event: "presence_diff",
+          payload: presence
+        },
+        socket
+      ) do
+    bots =
+      Enum.map(socket.assigns.bots, fn bot ->
+        sync_bot(bot, presence)
+      end)
+
+    {:noreply, socket |> assign(:bots, bots)}
   end
 
   def create_bot(params, socket) do
@@ -165,6 +192,34 @@ defmodule YourBotWeb.BotLive do
     end
   end
 
+  defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, nil) do
+    presence = YourBot.Bots.Presence.find(bot)
+
+    if presence do
+      sync_bot(bot, %{joins: %{"#{id}" => presence}})
+    else
+      sync_bot(bot, %{leaves: %{"#{id}" => bot}})
+    end
+  end
+
+  defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, payload) when is_map(payload) do
+    id = to_string(id)
+    joins = Map.get(payload, :joins, %{})
+    leaves = Map.get(payload, :leaves, %{})
+
+    cond do
+      meta = joins[id] ->
+        updates = YourBot.Bots.Presence.into_meta(meta)
+        Map.merge(bot, updates)
+
+      leaves[id] ->
+        %{bot | uptime_status: "down"}
+
+      true ->
+        bot
+    end
+  end
+
   def render(assigns) do
     ~F"""
     <BotModal title={"#{@action} Bot"} show={ @show_bot_dialog } hide_event="hide_dialog" changeset={ @bot_changeset } />
@@ -180,7 +235,7 @@ defmodule YourBotWeb.BotLive do
         </p>
         <ul class="menu-list">
           {#for bot <- @bots }
-            <li><a :on-click="select_bot" phx-value-bot_id={bot.id} role="select_bot"> {bot.name} </a></li>
+            <li><a :on-click="select_bot" phx-value-bot_id={bot.id} role="select_bot"> {bot.name} - {bot.uptime_status} </a></li>
           {/for}
         </ul>
         </aside>
@@ -194,7 +249,6 @@ defmodule YourBotWeb.BotLive do
           <div>
             <Button class="button is-rounded is-primary" click="save_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
             <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
-            <Button class="button is-rounded is-success" click="run_code"     opts={phx_value_bot: @bot_changeset.data.id, role: "run_code_#{@bot_changeset.data.id}"}>Run</Button>
             <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
           </div>
           <XTerm id="terminal"/>

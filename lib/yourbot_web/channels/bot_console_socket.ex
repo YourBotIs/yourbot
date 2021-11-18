@@ -22,15 +22,23 @@ defmodule YourBotWeb.BotConsoleSocket do
   alias YourBot.Accounts.APIToken
 
   defmodule RPC do
-    defstruct [id: nil, kind: nil, action: nil, args: %{}]
+    defstruct id: nil, kind: nil, action: nil, args: %{}
 
     def decode(rpc)
+
     def decode(rpc) when is_binary(rpc) do
       with {:ok, rpc} <- Jason.decode(rpc) do
         decode(rpc)
       else
         _ ->
-          {:ok, error} = encode(%__MODULE__{id: System.unique_integer([:positive]), kind: "error", action: "decode", args: %{message: "could not decode json"}})
+          {:ok, error} =
+            encode(%__MODULE__{
+              id: System.unique_integer([:positive]),
+              kind: "error",
+              action: "decode",
+              args: %{message: "could not decode json"}
+            })
+
           {:error, error}
       end
     end
@@ -40,7 +48,14 @@ defmodule YourBotWeb.BotConsoleSocket do
     end
 
     def decode(_) do
-      {:ok, error} = encode(%__MODULE__{id: System.unique_integer([:positive]), kind: "error", action: "decode", args: %{message: "could not decode rpc"}})
+      {:ok, error} =
+        encode(%__MODULE__{
+          id: System.unique_integer([:positive]),
+          kind: "error",
+          action: "decode",
+          args: %{message: "could not decode rpc"}
+        })
+
       {:error, error}
     end
 
@@ -80,10 +95,20 @@ defmodule YourBotWeb.BotConsoleSocket do
   @impl :cowboy_websocket
   def websocket_init(socket) do
     socket.endpoint.subscribe("bots")
+    socket.endpoint.subscribe("crud:bots")
     bot = sync_bot(socket.assigns.bot, nil)
+
+    tty_data =
+      if bot.uptime_status == "up" do
+        for data <- YourBot.BotSandbox.get_stdout(bot) do
+          {:ok, rpc} = tty_data_rpc(bot, data)
+          {:text, rpc}
+        end
+      end
+
+    {:ok, rpc} = status_rpc(bot)
     Process.send_after(self(), :send_ping, 5000)
-    # bot_json = YourBotWeb.BotsView.render("bot.json", %{bots: bot}) |> Jason.encode!()
-    {[], assign(socket, :bot, bot)}
+    {[{:text, rpc} | tty_data || []], assign(socket, :bot, bot)}
   end
 
   @impl :cowboy_websocket
@@ -121,14 +146,105 @@ defmodule YourBotWeb.BotConsoleSocket do
 
   def websocket_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: presence}, socket) do
     bot = sync_bot(socket.assigns.bot, presence)
-    {[], assign(socket, :bot, bot)}
+    {:ok, rpc} = status_rpc(bot)
+    {[{:text, rpc}], assign(socket, :bot, bot)}
+  end
+
+  def websocket_info(
+        %Phoenix.Socket.Broadcast{event: "tty_data", payload: %{bot: %{id: id}, data: data}},
+        %{assigns: %{bot: %{id: id}}} = socket
+      ) do
+    {:ok, rpc} = tty_data_rpc(socket.assigns.bot, data)
+    {[{:text, rpc}], socket}
+  end
+
+  def websocket_info(
+        %Phoenix.Socket.Broadcast{event: "update", payload: %{new: %{id: id} = bot}},
+        %{assigns: %{bot: %{id: id}}} = socket
+      ) do
+    bot = sync_bot(bot, nil)
+    {:ok, rpc} = status_rpc(bot)
+    {[{:text, rpc}], assign(socket, :bot, bot)}
   end
 
   def websocket_info(_info, socket), do: {[], socket}
 
+  def handle_rpc(%RPC{kind: "sandbox", action: "stop"} = rpc, socket) do
+    with :ok <- YourBot.BotSupervisor.terminate_child(socket.assigns.bot),
+         {:ok, rpc} <- RPC.encode(rpc) do
+      {[{:text, rpc}], socket}
+    else
+      _ ->
+        rpc = %RPC{
+          kind: "error",
+          action: "terminate_child",
+          args: %{message: "failed to stop sandbox"}
+        }
+
+        {:ok, error} = RPC.encode(rpc)
+        {[{:text, error}], socket}
+    end
+  end
+
+  def handle_rpc(%RPC{kind: "sandbox", action: "start"} = rpc, socket) do
+    with {:ok, _pid} <- YourBot.BotSupervisor.start_child(socket.assigns.bot),
+         {:ok, rpc} <- RPC.encode(rpc) do
+      {[{:text, rpc}], socket}
+    else
+      _ ->
+        rpc = %RPC{
+          kind: "error",
+          action: "start_child",
+          args: %{message: "failed to start sandbox"}
+        }
+
+        {:ok, error} = RPC.encode(rpc)
+        {[{:text, error}], socket}
+    end
+  end
+
+  def handle_rpc(%RPC{kind: "sandbox", action: "status"} = rpc, socket) do
+    bot = sync_bot(socket.assigns.bot, nil)
+    {:ok, rpc} = status_rpc(bot, rpc)
+    {[{:text, rpc}], assign(socket, :bot, bot)}
+  end
+
   def handle_rpc(command, socket) do
-    {:ok, reply} = RPC.encode(%RPC{id: command.id, kind: "error", action: "handle_rpc", args: %{message: "unknown command"}})
+    {:ok, reply} =
+      RPC.encode(%RPC{
+        id: command.id,
+        kind: "error",
+        action: "handle_rpc",
+        args: %{message: "unknown command"}
+      })
+
     {[{:text, reply}], socket}
+  end
+
+  defp status_rpc(bot, rpc \\ %RPC{}) do
+    rpc = %RPC{
+      rpc
+      | kind: "sandbox",
+        action: "status",
+        args: %{
+          uptime_status: bot.uptime_status,
+          deploy_status: bot.deploy_status
+        }
+    }
+
+    RPC.encode(rpc)
+  end
+
+  defp tty_data_rpc(_bot, data) do
+    rpc = %RPC{
+      kind: "sandbox",
+      action: "tty_data",
+      args: %{
+        message: data
+      }
+    }
+
+    RPC.encode(rpc)
   end
 
   def into_socket(req, _opts) do
@@ -139,8 +255,13 @@ defmodule YourBotWeb.BotConsoleSocket do
   end
 
   defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, nil) do
-    joins = Map.put(%{}, to_string(id), YourBot.Bots.Presence.find(bot))
-    sync_bot(bot, %{joins: joins})
+    presence = YourBot.Bots.Presence.find(bot)
+
+    if presence do
+      sync_bot(bot, %{joins: %{"#{id}" => presence}})
+    else
+      sync_bot(bot, %{leaves: %{"#{id}" => bot}})
+    end
   end
 
   defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, payload) when is_map(payload) do
@@ -154,7 +275,7 @@ defmodule YourBotWeb.BotConsoleSocket do
         Map.merge(bot, updates)
 
       leaves[id] ->
-        bot
+        %{bot | uptime_status: "down"}
 
       true ->
         bot

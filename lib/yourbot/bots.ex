@@ -14,6 +14,7 @@ defmodule YourBot.Bots do
 
   def list_started_bots() do
     Repo.all(from b in Bot, where: b.deploy_status != :stop)
+    |> Enum.map(&load_code/1)
   end
 
   def list_bots(user) do

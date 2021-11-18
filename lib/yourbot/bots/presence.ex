@@ -21,7 +21,7 @@ defmodule YourBot.Bots.Presence do
   alias YourBot.Bots.Bot
 
   @allowed_fields [
-    :started_at
+    :uptime_status
   ]
 
   @typedoc """

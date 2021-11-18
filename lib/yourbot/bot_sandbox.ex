@@ -16,6 +16,10 @@ defmodule YourBot.BotSandbox do
     GenServer.cast({__MODULE__, :"#{bot.id}@#{node_name()}"}, {:code, bot.code, pid})
   end
 
+  def get_stdout(bot) do
+    GenServer.call(via(bot, __MODULE__), :get_stdout)
+  end
+
   @impl GenServer
   def init(bot) do
     # @endpoint.subscribe("crud:bots")
@@ -43,12 +47,15 @@ defmodule YourBot.BotSandbox do
         ]
       )
 
-    {:ok, %{bot: bot, tty: tty}, {:continue, :connect}}
+    {:ok, %{bot: bot, tty: tty, stdout: []}, {:continue, :connect}}
   end
 
   @impl GenServer
   def terminate(_reason, state) do
-    _ = Presence.untrack(self(), "bots", "#{state.bot.id}")
+    {:ok, _} =
+      Presence.update(self(), "bots", "#{state.bot.id}", fn meta ->
+        %{meta | uptime_status: "down"}
+      end)
   end
 
   @impl GenServer
@@ -57,12 +64,22 @@ defmodule YourBot.BotSandbox do
       true ->
         Logger.info("Connected to #{state.bot.id}@#{node_name()}")
         Node.monitor(:"#{state.bot.id}@#{node_name()}", true)
-        bot = YourBot.Bots.update_bot_deploy_status(state.bot, "live")
+        # bot = YourBot.Bots.update_bot_deploy_status(state.bot, "live")
+        {:ok, _} =
+          Presence.update(self(), "bots", "#{state.bot.id}", fn meta ->
+            %{meta | uptime_status: "up"}
+          end)
 
-        {:noreply, %{state | bot: bot}, {:continue, :exec_code}}
+        {:noreply, state, {:continue, :exec_code}}
 
       false ->
         Logger.warn("Failed to connect to #{state.bot.id}@#{node_name()}")
+
+        {:ok, _} =
+          Presence.update(self(), "bots", "#{state.bot.id}", fn meta ->
+            %{meta | uptime_status: "boot"}
+          end)
+
         Process.sleep(1000)
         {:noreply, state, {:continue, :connect}}
     end
@@ -75,22 +92,33 @@ defmodule YourBot.BotSandbox do
   end
 
   @impl GenServer
+  def handle_call(:get_stdout, _from, state) do
+    {:reply, state.stdout, state}
+  end
+
+  @impl GenServer
   def handle_info({:tty_data, data}, state) do
     Logger.debug(%{tty_data: data, bot: state.bot.id})
-    @endpoint.broadcast!("sandbox", "tty_data", %{bot: state.bot, data: data})
-    {:noreply, state}
+    @endpoint.broadcast!("bots", "tty_data", %{bot: state.bot, data: data})
+    {:noreply, %{state | stdout: state.stdout ++ [data]}}
   end
 
   def handle_info({:nodedown, _node}, state) do
-    bot = YourBot.Bots.update_bot_deploy_status(state.bot, "error")
-    {:stop, :nodedown, %{state | bot: bot}}
+    {:ok, _} =
+      Presence.update(self(), "bots", "#{state.bot.id}", fn meta ->
+        %{meta | uptime_status: "down"}
+      end)
+
+    # bot = YourBot.Bots.update_bot_deploy_status(state.bot, "error")
+    # {:stop, :nodedown, %{state | bot: bot}}
+    {:stop, :nodedown, state}
   end
 
   def node_name, do: Application.get_env(:yourbot, __MODULE__)[:node_name]
 
   def default_presence do
     %{
-      started_at: DateTime.utc_now()
+      uptime_status: "boot"
     }
   end
 end
