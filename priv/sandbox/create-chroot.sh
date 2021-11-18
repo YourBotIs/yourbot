@@ -35,16 +35,12 @@ chmod 0666 $CHROOT/dev/{null,tty,zero}
 chown root.tty $CHROOT/dev/tty
 
 # copy programs and libraries
-copy_binary /bin/{bash,ls,cp,rm,cat,mkdir,ln,grep,cut,sed} /usr/bin/{vim,ssh,head,tail,which,id,find,xargs} `which python3` /usr/lib/x86_64-linux-gnu/libffi.so.8 /usr/lib/x86_64-linux-gnu/libssl.so.1.1
+copy_binary /bin/{ls,cp,rm,mkdir,ln,sed} /usr/bin/{head,tail,which,id,find,xargs} `which python3` /usr/lib/x86_64-linux-gnu/libffi.so.8 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 /usr/lib/x86_64-linux-gnu/libsqlite3.so.0
 
 # copy basic system level files
-# cp --parents /etc/group $CHROOT
-# cp --parents /etc/passwd $CHROOT
-# cp --parents /etc/shadow $CHROOT
 cp --parents /etc/nsswitch.conf $CHROOT
 cp --parents /etc/resolv.conf $CHROOT
 cp --parents /etc/hosts $CHROOT
-# cp --parents /lib/libnss_* $CHROOT
 cp -r --parents /usr/share/terminfo $CHROOT
 cp -r --parents /usr/lib/python3.9 $CHROOT
 cp -r --parents /usr/lib/python3.9/lib-dynload/* $CHROOT
@@ -52,22 +48,8 @@ cp -r --parents /usr/local/lib/python3.9/dist-packages/* $CHROOT
 cp -r --parents /usr/local/lib/python3.9/dist-packages/**/* $CHROOT
 cp -r --parents /usr/lib/python3/dist-packages/**/* $CHROOT
 cp -r --parents /usr/lib/python3.9/dist-packages/**/* $CHROOT
+cp -r --parents /usr/lib/python3/dist-packages/* /var/chroot//usr/lib/python3/dist-packages/
 cp -r --parents /usr/local/share/ca-certificates/ $CHROOT
 cp -r --parents /usr/lib/ssl/certs/ $CHROOT
-
-# setup public key for root
-# mkdir -p $CHROOT/root/.ssh
-# chmod 0700 $CHROOT/root/.ssh
-# cp {id_rsa,id_rsa.pub} $CHROOT/root/.ssh
-
-# setup public key for qbot
-# mkdir -p $CHROOT/home/qbot/.ssh
-# chmod 0700 $CHROOT/home/qbot/.ssh
-# cp {id_rsa,id_rsa.pub} $CHROOT/home/qbot/.ssh
-# chown -R qbot.qbot $CHROOT/home/qbot/.ssh
-
-# create symlinks
-cd $CHROOT/usr/bin
-# ln -s vim vi
-
+cp -r --parents /etc/ssl/certs $CHROOT
 echo "chroot jail is created. type: chroot $CHROOT to access it"
