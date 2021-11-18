@@ -1,19 +1,6 @@
 defmodule YourBotWeb.BotConsoleSocket do
   @moduledoc """
-  ## Javascript example
-
-      // Create WebSocket connection.
-      const socket = new WebSocket('ws://localhost:4000/api/bots/console');
-
-      // Connection opened
-      socket.addEventListener('open', function (event) {
-          socket.send('Hello Server!');
-      });
-
-      // Listen for messages
-      socket.addEventListener('message', function (event) {
-          console.log('Message from server ', event.data);
-      });
+  Handles communication with a single bot
   """
 
   import Phoenix.Socket
