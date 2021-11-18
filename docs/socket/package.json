@@ -1,0 +1,20 @@
+{
+  "name": "example_socket",
+  "version": "1.0.0",
+  "description": "",
+  "main": "client.js",
+  "dependencies": {
+    "faye-websocket": "^0.11.4"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YourBotIs/yourbot"
+  },
+  "author": "Connor Ribgy",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/YourBotIs/yourbot/issues"
+  },
+  "homepage": "https://github.com/YourBotIs/yourbot#readme"
+}

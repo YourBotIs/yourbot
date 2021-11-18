@@ -21,6 +21,34 @@ defmodule YourBotWeb.BotConsoleSocket do
   alias YourBot.Bots
   alias YourBot.Accounts.APIToken
 
+  defmodule RPC do
+    defstruct [id: nil, kind: nil, action: nil, args: %{}]
+
+    def decode(rpc)
+    def decode(rpc) when is_binary(rpc) do
+      with {:ok, rpc} <- Jason.decode(rpc) do
+        decode(rpc)
+      else
+        _ ->
+          {:ok, error} = encode(%__MODULE__{id: System.unique_integer([:positive]), kind: "error", action: "decode", args: %{message: "could not decode json"}})
+          {:error, error}
+      end
+    end
+
+    def decode(%{"id" => id, "kind" => kind, "action" => action, "args" => args}) do
+      {:ok, %__MODULE__{id: id, kind: kind, action: action, args: args}}
+    end
+
+    def decode(_) do
+      {:ok, error} = encode(%__MODULE__{id: System.unique_integer([:positive]), kind: "error", action: "decode", args: %{message: "could not decode rpc"}})
+      {:error, error}
+    end
+
+    def encode(%__MODULE__{id: id, kind: kind, action: action, args: %{} = args}) do
+      Jason.encode(%{id: id, kind: kind, action: action, args: args})
+    end
+  end
+
   @behaviour :cowboy_websocket
 
   # entry point of the websocket socket.
@@ -32,18 +60,16 @@ defmodule YourBotWeb.BotConsoleSocket do
   #          defined in this module. This is notably dissimilar to other gen_* behaviours.
   @impl :cowboy_websocket
   def init(req, opts) do
-    token = req.headers["authorization"]
-
-    with {:ok, _user} <- APIToken.verify(token || ""),
-         %{"device_id" => device_id} <- URI.decode_query(req.qs),
-         %Bot{} = bot <- Bots.get_bot(device_id),
+    with %{"bot_id" => bot_id, "authorization" => token} <- URI.decode_query(req.qs),
+         {:ok, _user} <- APIToken.verify(token),
+         %Bot{} = bot <- Bots.get_bot(bot_id),
          socket <- into_socket(req, opts) do
       {:cowboy_websocket, req,
        socket
        |> assign(:bot, bot)}
     else
       _ ->
-        {:reply, {:close, 1000, "reason"}, opts}
+        {:reply, {:close, 1000, "not authorized"}, opts}
     end
   end
 
@@ -56,7 +82,8 @@ defmodule YourBotWeb.BotConsoleSocket do
     socket.endpoint.subscribe("bots")
     bot = sync_bot(socket.assigns.bot, nil)
     Process.send_after(self(), :send_ping, 5000)
-    {[], socket |> assign(:bot, bot)}
+    # bot_json = YourBotWeb.BotsView.render("bot.json", %{bots: bot}) |> Jason.encode!()
+    {[], assign(socket, :bot, bot)}
   end
 
   @impl :cowboy_websocket
@@ -74,9 +101,9 @@ defmodule YourBotWeb.BotConsoleSocket do
   # a message was delivered from a client. Here we handle it by just echoing it back
   # to the client.
   def websocket_handle({:text, message}, socket) do
-    case Jason.decode(message) do
-      {:ok, command} ->
-        handle_command(command, socket)
+    case RPC.decode(message) do
+      {:ok, rpc} ->
+        handle_rpc(rpc, socket)
 
       {:error, _} ->
         {[{:text, Jason.encode!(%{errors: ["could not decode json"]})}], socket}
@@ -99,8 +126,9 @@ defmodule YourBotWeb.BotConsoleSocket do
 
   def websocket_info(_info, socket), do: {[], socket}
 
-  def handle_command(_command, socket) do
-    {[{:text, Jason.encode!(%{errors: ["unknown command"]})}], socket}
+  def handle_rpc(command, socket) do
+    {:ok, reply} = RPC.encode(%RPC{id: command.id, kind: "error", action: "handle_rpc", args: %{message: "unknown command"}})
+    {[{:text, reply}], socket}
   end
 
   def into_socket(req, _opts) do
