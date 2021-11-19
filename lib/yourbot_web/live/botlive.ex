@@ -151,10 +151,21 @@ defmodule YourBotWeb.BotLive do
     {:noreply, socket}
   end
 
-  def handle_info(%Phoenix.Socket.Broadcast{topic: "crud:bots"}, socket) do
+  def handle_info(%Phoenix.Socket.Broadcast{topic: "crud:bots", payload: data}, socket) do
     bots =
       Bots.list_bots(socket.assigns.user)
       |> Enum.map(fn bot -> sync_bot(bot, nil) end)
+
+    %{id: bot_id} = socket.assigns.bot_changeset.data
+
+    socket =
+      case data[:new] do
+        %{id: ^bot_id, code: code} ->
+          push_event(socket, :monaco_load, %{value: code})
+
+        _ ->
+          socket
+      end
 
     {:noreply,
      socket

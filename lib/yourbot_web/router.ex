@@ -15,7 +15,7 @@ defmodule YourBotWeb.Router do
   end
 
   pipeline :api do
-    plug :accepts, ["json"]
+    plug :accepts, ["json", "html"]
   end
 
   scope "/api/swagger" do
@@ -28,6 +28,7 @@ defmodule YourBotWeb.Router do
     post "/users/:id/token", UsersController, :token
     get "/users/:id/bots", BotsController, :show_bots_for_user
     resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete]
+    post "/bots/:id/code", BotsController, :code
   end
 
   scope "/", YourBotWeb do
