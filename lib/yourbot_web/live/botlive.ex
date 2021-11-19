@@ -52,11 +52,22 @@ defmodule YourBotWeb.BotLive do
   def handle_event("change", %{"bot" => params}, socket) do
     case socket.assigns.action do
       :create ->
-        changeset = Bots.change_bot(socket.assigns.bot_changeset.data, params)
+        bot_changeset =
+          socket.assigns.bot_changeset.data
+          |> sync_bot(nil)
+          |> Bots.change_bot(params)
 
         {:noreply,
          socket
-         |> assign(:bot_changeset, changeset)}
+         |> assign(:bot_changeset, bot_changeset)}
+
+      :edit ->
+        bot_changeset =
+          socket.assigns.bot_changeset.data
+          |> sync_bot(nil)
+          |> Bots.change_bot(params)
+
+        {:noreply, assign(socket, :bot_changeset, bot_changeset)}
     end
   end
 
@@ -64,6 +75,9 @@ defmodule YourBotWeb.BotLive do
     case socket.assigns.action do
       :create ->
         create_bot(params, socket)
+
+      :edit ->
+        update_bot(socket.assigns.bot_changeset.data, params, socket)
     end
   end
 
@@ -199,6 +213,20 @@ defmodule YourBotWeb.BotLive do
     end
   end
 
+  def update_bot(bot, params, socket) do
+    case Bots.update_bot(bot, params) do
+      {:ok, bot} ->
+        bot_changeset = Bots.change_bot(sync_bot(bot, nil), params)
+        {:noreply, assign(socket, :bot_changeset, bot_changeset)}
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:bot_changeset, changeset)
+         |> put_flash(:error, "could not create bot")}
+    end
+  end
+
   defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, nil) do
     presence = YourBot.Bots.Presence.find(bot)
 
@@ -257,7 +285,12 @@ defmodule YourBotWeb.BotLive do
             <Button class="button is-rounded is-primary" click="save_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
             <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
             <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
+            <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_dialog" color="primary" opts={role: "edit_bot"}>Edit Bot</Button>
+          </div>
+          <div>
             {@bot_changeset.data.uptime_status}
+            <a href={"https://discord.com/developers/applications/#{@bot_changeset.data.application_id}/bot"} :if={@bot_changeset.data.id}> Discord Management Console </a>
+            <a href={"https://discordapp.com/api/oauth2/authorize?client_id=#{@bot_changeset.data.application_id}&scope=bot&permissions=274877941760"} :if={@bot_changeset.data.id}> Invite the bot to a server </a>
           </div>
           <XTerm id="terminal"/>
         </section>
