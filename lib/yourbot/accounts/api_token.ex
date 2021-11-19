@@ -20,7 +20,7 @@ defmodule YourBot.Accounts.APIToken do
     }
   end
 
-  def generate(user, scope) when scope in [:admin, :user] do
+  def generate(user, scope) when scope in [:admin, :user, :git] do
     iss = YourBotWeb.Endpoint.url()
     nonce = :crypto.strong_rand_bytes(64) |> Base.encode16()
     exp = DateTime.utc_now() |> DateTime.to_unix()

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -e
+ID="<%= bot.id %>"
+TOKEN="<%= token.token %>"
+
+git --work-tree=work --git-dir=$(pwd) checkout -f
+CODE=$(cat work/client.py)
+
+echo "Deploying code"
+
+curl -H "Authorization: $TOKEN" \
+     -X POST \
+     -s -o /dev/null -F "code=@work/client.py" \
+    "<%= url %>"
+
+echo "Code saved"
