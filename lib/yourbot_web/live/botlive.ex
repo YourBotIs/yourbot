@@ -83,7 +83,7 @@ defmodule YourBotWeb.BotLive do
 
   def handle_event("select_bot", %{"bot_id" => bot_id}, socket) do
     bot_changeset =
-      Bots.get_bot(bot_id)
+      Bots.get_bot(socket.assigns.user, bot_id)
       |> sync_bot(nil)
       |> Bots.change_bot()
 
@@ -128,7 +128,8 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("restart_code", %{"bot" => bot_id}, socket) do
-    bot_changeset = Bots.get_bot(bot_id) |> sync_bot(nil) |> Bots.change_bot()
+    bot_changeset =
+      Bots.get_bot(socket.assigns.user, bot_id) |> sync_bot(nil) |> Bots.change_bot()
 
     if pid =
          GenServer.whereis(YourBot.BotNameProvider.via(bot_changeset.data, YourBot.BotSandbox)) do
@@ -145,7 +146,7 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("stop_code", %{"bot" => bot_id}, socket) do
-    YourBot.Bots.get_bot(bot_id)
+    YourBot.Bots.get_bot(socket.assigns.user, bot_id)
     |> YourBot.BotSupervisor.terminate_child()
 
     {:noreply, socket}

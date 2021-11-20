@@ -141,10 +141,10 @@ defmodule YourBotWeb.UserAuth do
   def require_authenticated_api_token(conn, _opts) do
     case get_req_header(conn, "authorization") do
       ["Bearer " <> token] ->
-        verify_api_token(conn, token)
+        verify_api_token(conn, token, "admin")
 
       [token] ->
-        verify_api_token(conn, token)
+        verify_api_token(conn, token, "admin")
 
       _ ->
         conn
@@ -155,8 +155,8 @@ defmodule YourBotWeb.UserAuth do
     end
   end
 
-  def verify_api_token(conn, token) do
-    case YourBot.Accounts.APIToken.verify(token) do
+  def verify_api_token(conn, token, scope) do
+    case YourBot.Accounts.APIToken.verify(token, scope) do
       {:ok, user} ->
         conn
         |> assign(:current_user, user)

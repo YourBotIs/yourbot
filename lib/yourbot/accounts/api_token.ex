@@ -44,8 +44,9 @@ defmodule YourBot.Accounts.APIToken do
     JOSE.JWT.peek_payload(token.token).fields
   end
 
-  def verify(signed) do
-    with {true, %{fields: %{"user_id" => user_id}}, _} <- JOSE.JWT.verify(jwk(), signed),
+  def verify(signed, scope) do
+    with {true, %{fields: %{"user_id" => user_id, "scope" => ^scope}}, _} <-
+           JOSE.JWT.verify(jwk(), signed),
          %__MODULE__{} <- YourBot.Repo.get_by(__MODULE__, token: signed, user_id: user_id) do
       {:ok, YourBot.Repo.get!(YourBot.Accounts.User, user_id)}
     else

@@ -33,6 +33,16 @@ defmodule YourBot.Bots do
     |> Enum.map(&load_code/1)
   end
 
+  def get_bot(user, bot_id) do
+    Repo.one!(
+      from bot_user in BotUser,
+        where: bot_user.user_id == ^user.id and bot_user.bot_id == ^bot_id
+    )
+    |> Repo.preload(:bot)
+    |> Map.fetch!(:bot)
+    |> load_code()
+  end
+
   def get_bot(id) do
     Repo.get!(Bot, id)
     |> Repo.preload(:environment_variables)

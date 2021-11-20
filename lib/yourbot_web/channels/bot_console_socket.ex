@@ -63,8 +63,8 @@ defmodule YourBotWeb.BotConsoleSocket do
   @impl :cowboy_websocket
   def init(req, opts) do
     with %{"bot_id" => bot_id, "authorization" => token} <- URI.decode_query(req.qs),
-         {:ok, _user} <- APIToken.verify(token),
-         %Bot{} = bot <- Bots.get_bot(bot_id),
+         {:ok, user} <- APIToken.verify(token, "user"),
+         %Bot{} = bot <- Bots.get_bot(user, bot_id),
          socket <- into_socket(req, opts) do
       {:cowboy_websocket, req,
        socket
