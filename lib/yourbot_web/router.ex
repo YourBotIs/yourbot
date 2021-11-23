@@ -29,7 +29,7 @@ defmodule YourBotWeb.Router do
     get "/users/:id/bots", BotsController, :show_bots_for_user
 
     resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete] do
-      post "code", BotsController, :code
+      post "/code", BotsController, :code
 
       resources "/environment_variables", EnvironmentVariableController,
         only: [:index, :create, :show, :update, :delete]

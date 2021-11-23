@@ -57,7 +57,8 @@ defmodule YourBot.Bots do
     case Repo.transaction(multi) do
       {:ok, %{bot: bot}} ->
         bot = Repo.preload(bot, :environment_variables)
-        code = Bot.code_template(bot)
+        user = Repo.preload(user, [:discord_oauth])
+        code = Bot.code_template(bot, user)
         bot = sync_code!(bot, code)
         @endpoint.broadcast("crud:bots", "insert", %{new: bot})
         {:ok, bot}

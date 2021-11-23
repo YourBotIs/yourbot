@@ -1,24 +1,50 @@
+#!/bin/env python3
+# Copyright (C) <%= user.discord_oauth.username %>#<%= user.discord_oauth.discriminator %> - All Rights Reserved
+# Unauthorized copying of this file, via any medium is strictly prohibited
+# Proprietary and confidential
+# Written by <%= user.discord_oauth.username %>#<%= user.discord_oauth.discriminator %>, <%= month %> <%= year %>
+#
+# You're under no obligation to choose a license. A sample one has been provided to you aboce. 
+# It's your right not to include one with your code or project, but please be aware of the implications.
+# Generally speaking, the absence of a license means that the default copyright laws apply. 
+# This means that you retain all rights to your source code and that nobody else may 
+# reproduce, distribute, or create derivative works from your work. This might not be what you intend.
+# Even if this is what you intend, if you publish your source code in a public code on YourBot, 
+# you have accepted the Terms of Service which do allow other YourBot users some rights. 
+# Specifically, you allow others to view code within the YourBot site.
+
 import discord
 import asyncio
 import logging
+import os
 
-logger = logging.getLogger('MyClient')
+# Configure logging. 
+# You are free to remove this code, however logs will not sent to the web console
+logger = logging.getLogger('<%= client_object %>')
 logger.setLevel(logging.DEBUG)
 
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+# Setup a stream handler to write data to stdout.
+# Stdout is piped directly to the web console
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+default_handler = logging.StreamHandler()
+default_handler.setFormatter(formatter)
 
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+# install the handler
+logger.addHandler(default_handler)
 
-class MyClient(discord.Client):
+# This class is where most of your code should go.
+# see the documentation for more information
+#   https://discordpy.readthedocs.io/en/stable/api.html#client
+class <%= client_object %>(discord.Client):
+    # This callback is called when your client successfully
+    # connects to the discord API
     async def on_ready(self):
         logger.info('Logged on as {0}!'.format(self.user))
 
+    # This callback is called whenever anyone posts a message
     async def on_message(self, message):
         logger.info('Message from {0.author}: {0.content}'.format(message))
 
-client = MyClient()
-asyncio.create_task(client.start('<%= bot.token %>'))
+# Instanciate a client object and start it. 
+client = <%= client_object %>() 
+asyncio.create_task(client.start(os.environ['DISCORD_TOKEN']))

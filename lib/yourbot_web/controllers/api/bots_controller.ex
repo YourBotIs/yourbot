@@ -160,7 +160,7 @@ defmodule YourBotWeb.BotsController do
     render(conn, "index.json", bots: bots)
   end
 
-  def code(conn, %{"id" => bot_id, "code" => code}) do
+  def code(conn, %{"bots_id" => bot_id, "code" => code}) do
     code = File.read!(code.path)
     bot = Bots.get_bot(bot_id)
     bot = Bots.sync_code!(bot, code)

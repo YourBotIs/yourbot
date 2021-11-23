@@ -1,6 +1,6 @@
 # Terms of Service
 
-Last revised on 2021-11-14
+Last revised on 2021-11-24
 
 ## The Gist
 
@@ -28,7 +28,7 @@ In order to use the Service, You (the "Customer", "You", or "Your") must first a
 
 YourBotIs Team may make changes to the Terms from time to time. You may reject the changes by terminating Your account. You understand and agree that if You use the Service after the date on which the Terms have changed, YourBotIs Team will treat Your use as acceptance of the updated Terms.
 
-If you have any question about the Terms, please contact us at [CONTACT EMAIL].
+If you have any question about the Terms, please contact us at connorr@hey.com.
 
 ## Your Account
 

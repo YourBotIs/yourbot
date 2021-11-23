@@ -30,8 +30,16 @@ defmodule YourBot.Bots.Bot do
     |> validate_required([:deploy_status])
   end
 
-  def code_template(bot) do
+  def code_template(bot, user) do
     file = Application.app_dir(:yourbot, ["priv", "sandbox", "client.py.eex"])
-    EEx.eval_file(file, bot: bot)
+    today = Date.utc_today()
+
+    EEx.eval_file(file,
+      bot: bot,
+      user: user,
+      month: Calendar.strftime(today, "%B"),
+      year: Calendar.strftime(today, "%Y"),
+      client_object: "MyClient"
+    )
   end
 end
