@@ -22,6 +22,7 @@ defmodule YourBotWeb.BotLive do
     bot_changeset = Bots.change_bot(%Bot{})
     socket.endpoint.subscribe("crud:bots")
     socket.endpoint.subscribe("bots")
+    :ok = SocketDrano.monitor(socket)
 
     {:ok,
      socket

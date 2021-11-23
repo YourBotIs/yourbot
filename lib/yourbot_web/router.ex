@@ -12,10 +12,12 @@ defmodule YourBotWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_user
+    plug SocketDrano.Plug
   end
 
   pipeline :api do
     plug :accepts, ["json", "html"]
+    plug SocketDrano.Plug
   end
 
   scope "/api/swagger" do
