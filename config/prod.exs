@@ -76,7 +76,7 @@ config :yourbot, YourBot.Repo,
   url: database_url,
   pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
-config :yourbot, YourBot.BotSandbox, node_name: "yourbotis"
+config :yourbot, YourBot.BotSandbox, node_name: "yourbotis", chroot: "/var/chroot"
 
 api_token_secret =
   System.get_env("API_TOKEN_SECRET") ||

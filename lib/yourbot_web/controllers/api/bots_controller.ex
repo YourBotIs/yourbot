@@ -132,9 +132,9 @@ defmodule YourBotWeb.BotsController do
 
   swagger_path :delete do
     PhoenixSwagger.Path.delete("/bots/{bot_id}")
-    description("update a bot")
+    description("delete a bot")
     security([%{Bearer: []}])
-    parameter(:bot_id, :path, :string, "Bot to update", required: true)
+    parameter(:bot_id, :path, :string, "Bot to delete", required: true)
     response(200, nil)
   end
 

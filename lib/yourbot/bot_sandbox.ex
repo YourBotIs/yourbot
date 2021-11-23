@@ -22,18 +22,32 @@ defmodule YourBot.BotSandbox do
 
   @impl GenServer
   def init(bot) do
+    Logger.metadata(bot_id: bot.id)
     # @endpoint.subscribe("crud:bots")
     python = System.find_executable("python3")
     sandbox_py = Application.app_dir(:yourbot, ["priv", "sandbox", "sandbox.py"])
     {:ok, _presence} = Presence.track(self(), "bots", "#{bot.id}", default_presence())
 
-    args = [
-      sandbox_py,
-      "--name",
-      "#{bot.id}@#{node_name()}",
-      "--cookie",
-      to_string(Node.get_cookie())
-    ]
+    args =
+      [
+        sandbox_py,
+        "--name",
+        "#{bot.id}@#{node_name()}",
+        "--cookie",
+        to_string(Node.get_cookie())
+      ] ++ chroot()
+
+    env =
+      Enum.map(:os.env(), fn {key, _} -> {to_string(key), nil} end) ++
+        [
+          {"DISCORD_TOKEN", bot.token},
+          {"DISCORD_PUBLIC_KEY", bot.public_key},
+          {"DISCORD_CLIENT_ID", to_string(bot.application_id)},
+          {"DISCORD_APPLICATION_ID", to_string(bot.application_id)}
+        ] ++
+        Enum.map(bot.environment_variables, fn %{key: key, value: value} ->
+          {to_string(key), to_string(value)}
+        end)
 
     {:ok, tty} =
       ExTTY.start_link(
@@ -42,7 +56,8 @@ defmodule YourBot.BotSandbox do
         shell_opts: [
           [
             exec: python,
-            args: args
+            args: args,
+            env: env
           ]
         ]
       )
@@ -64,12 +79,6 @@ defmodule YourBot.BotSandbox do
       true ->
         Logger.info("Connected to #{state.bot.id}@#{node_name()}")
         Node.monitor(:"#{state.bot.id}@#{node_name()}", true)
-        # bot = YourBot.Bots.update_bot_deploy_status(state.bot, "live")
-        {:ok, _} =
-          Presence.update(self(), "bots", "#{state.bot.id}", fn meta ->
-            %{meta | uptime_status: "up"}
-          end)
-
         {:noreply, state, {:continue, :exec_code}}
 
       false ->
@@ -109,12 +118,37 @@ defmodule YourBot.BotSandbox do
         %{meta | uptime_status: "down"}
       end)
 
-    # bot = YourBot.Bots.update_bot_deploy_status(state.bot, "error")
-    # {:stop, :nodedown, %{state | bot: bot}}
     {:stop, :nodedown, state}
   end
 
+  def handle_info({:stacktrace, reason, st}, state) do
+    stacktrace =
+      Enum.map(st, fn {name, filename, lineno} ->
+        {__MODULE__, String.to_atom(name), 0, file: to_charlist(filename), line: lineno}
+      end)
+
+    exception = Exception.format(:exit, reason, stacktrace)
+    Logger.error("Caught python exception in sandbox: " <> exception)
+    {:stop, reason, state}
+  end
+
+  def handle_info({:exec, result}, state) do
+    Logger.info("Sandbox up and running: #{inspect(result)}")
+
+    {:ok, _} =
+      Presence.update(self(), "bots", "#{state.bot.id}", fn meta ->
+        %{meta | uptime_status: "up"}
+      end)
+
+    {:noreply, state}
+  end
+
   def node_name, do: Application.get_env(:yourbot, __MODULE__)[:node_name]
+
+  def chroot do
+    chroot = Application.get_env(:yourbot, __MODULE__)[:chroot]
+    if chroot, do: ["--chroot", chroot], else: []
+  end
 
   def default_presence do
     %{

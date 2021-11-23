@@ -27,8 +27,13 @@ defmodule YourBotWeb.Router do
     resources "/users", UsersController, only: [:create, :show, :update, :delete]
     post "/users/:id/token", UsersController, :token
     get "/users/:id/bots", BotsController, :show_bots_for_user
-    resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete]
-    post "/bots/:id/code", BotsController, :code
+
+    resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete] do
+      post "code", BotsController, :code
+
+      resources "/environment_variables", EnvironmentVariableController,
+        only: [:index, :create, :show, :update, :delete]
+    end
   end
 
   scope "/", YourBotWeb do
@@ -122,7 +127,8 @@ defmodule YourBotWeb.Router do
       },
       tags: [
         %{name: "Users", description: "Operations about Users"},
-        %{name: "Bots", description: "Operations about Bots"}
+        %{name: "Bots", description: "Operations about Bots"},
+        %{name: "EnvironmentVariables", description: "Operations about env vars"}
       ]
     }
   end

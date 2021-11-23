@@ -4,9 +4,7 @@ import logging
 import sys
 import traceback
 import sys
-import getopt
 import argparse
-import asyncio
 import os
 
 from term import Atom
@@ -26,19 +24,24 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-
 class Sandbox(GenServer):
-    def __init__(self, node) -> None:
+    def __init__(self, node, chroot) -> None:
+        if(chroot):
+            os.chroot(chroot)
+            os.chdir("/")
+        self.node = node
         super().__init__()
 
     @cast(1, lambda msg: type(msg) == tuple and msg[0] == Atom("code") and type(msg[2]) == Pid)
-    def handle_cast(self, msg):
+    async def handle_cast(self, msg):
         try:
-            os.chroot("/var/chroot")
-            os.chdir("/")
             code = compile(msg[1], "client.py", "exec")
-            exec(code, globals(), globals())
-            # self.node.send_nowait()
+            result = exec(code, globals(), globals())
+            await self.node.send(
+                    sender=self,
+                    receiver=msg[2],
+                    message=(Atom("exec"), result)
+                )
         except:
             traceback.print_exc()
             reason = str(sys.exc_info()[1]).encode('utf-8')
@@ -46,7 +49,11 @@ class Sandbox(GenServer):
             st = [(bytes(o.name, 'utf-8'), bytes(o.filename, 'utf-8'), o.lineno)
                   for o in summary]
             logger.info(st)
-            sys.exit("crash")
+            await self.node.send(
+                    sender=self,
+                    receiver=msg[2],
+                    message=(Atom("stacktrace"), reason, st)
+            )
 
 def main():
     parser = argparse.ArgumentParser(description="Sandbox.py")
@@ -56,15 +63,16 @@ def main():
                     help='Node Cookie', required=True)
     parser.add_argument('--hidden', type=bool,
                     help='hidden node', required=False, default=False)
+    parser.add_argument('--chroot', type=str,
+                    help='path to chroot into', required=False)
     args = parser.parse_args()
 
     node = Node(args.name, args.cookie, args.hidden)
     logger.info("node reachable at %s" % args.name)
     logger.info("registering process 'Elixir.YourBot.BotSandbox'")
-    sandbox = Sandbox(node)
+    sandbox = Sandbox(node, args.chroot)
     node.register_name(sandbox, Atom('Elixir.YourBot.BotSandbox'))
     node.run()
-
 
 if __name__ == "__main__":
     main()

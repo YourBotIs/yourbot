@@ -110,6 +110,30 @@
       "title": "Create Bot",
       "type": "object"
     },
+    "CreateEnvironmentVariable": {
+      "description": "Params for creating an env var",
+      "properties": {
+        "environment_variable": {
+          "properties": {
+            "key": {
+              "description": "Unique name of the variable",
+              "type": "string"
+            },
+            "value": {
+              "description": "secret value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "key"
+          ],
+          "type": "object"
+        }
+      },
+      "title": "Create env var",
+      "type": "object"
+    },
     "CreateUser": {
       "description": "Essentially the `me` object from Discord",
       "example": {
@@ -156,6 +180,29 @@
         }
       },
       "title": "Create User",
+      "type": "object"
+    },
+    "EnvironmentVariable": {
+      "description": "Describes an env var",
+      "example": {
+        "key": "SECRET_TOKEN",
+        "value": "SUPER.SECRET.VALUE"
+      },
+      "properties": {
+        "key": {
+          "description": "Unique name of the variable",
+          "type": "string"
+        },
+        "value": {
+          "description": "secret value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "key"
+      ],
+      "title": "EnvironmentVariable",
       "type": "object"
     },
     "User": {
@@ -296,11 +343,11 @@
     },
     "/bots/{bot_id}": {
       "delete": {
-        "description": "update a bot",
+        "description": "delete a bot",
         "operationId": "YourBotWeb.BotsController.delete",
         "parameters": [
           {
-            "description": "Bot to update",
+            "description": "Bot to delete",
             "in": "path",
             "name": "bot_id",
             "required": true,
@@ -389,6 +436,209 @@
         "summary": "",
         "tags": [
           "Bots"
+        ]
+      }
+    },
+    "/bots/{bot_id}/environment_variables": {
+      "get": {
+        "description": "list env vars for a bot",
+        "operationId": "YourBotWeb.EnvironmentVariableController.index",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/EnvironmentVariable"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "EnvironmentVariable"
+        ]
+      }
+    },
+    "/bots/{bot_id}/environment_variables/": {
+      "post": {
+        "description": "create a env var",
+        "operationId": "YourBotWeb.EnvironmentVariableController.create",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "var to create",
+            "in": "body",
+            "name": "environment_variable",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateEnvironmentVariable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/EnvironmentVariable"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "EnvironmentVariable"
+        ]
+      }
+    },
+    "/bots/{bot_id}/environment_variables/{environment_variable_id}": {
+      "delete": {
+        "description": "delete an env var",
+        "operationId": "YourBotWeb.EnvironmentVariableController.delete",
+        "parameters": [
+          {
+            "description": "Bot to delete",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "Environment Variable ID",
+            "in": "path",
+            "name": "environment_variable_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {}
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "EnvironmentVariable"
+        ]
+      },
+      "get": {
+        "description": "show an env var for a bot",
+        "operationId": "YourBotWeb.EnvironmentVariableController.show",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "Environment Variable ID",
+            "in": "path",
+            "name": "environment_variable_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/EnvironmentVariable"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "EnvironmentVariable"
+        ]
+      },
+      "patch": {
+        "description": "Update a env var",
+        "operationId": "YourBotWeb.EnvironmentVariableController.update",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "Environment Variable ID",
+            "in": "path",
+            "name": "environment_variable_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "var to update",
+            "in": "body",
+            "name": "environment_variable",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateEnvironmentVariable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/EnvironmentVariable"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "EnvironmentVariable"
         ]
       }
     },
@@ -550,6 +800,10 @@
     {
       "description": "Operations about Bots",
       "name": "Bots"
+    },
+    {
+      "description": "Operations about env vars",
+      "name": "EnvironmentVariables"
     }
   ]
 }
