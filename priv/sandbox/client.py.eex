@@ -56,7 +56,7 @@ class <%= client_object %>(discord.Client):
         with self.con:
             now = datetime.now()
             cur = con.cursor()
-            cur.execute("INSERT INTO yourbot_event_log ('content','name','inserted_at','updated_at') VALUES ('onconnect', ?, ?, ?)", ((self.user.name, now, now)))
+            cur.execute("INSERT INTO yourbot_event_log ('name','content','inserted_at','updated_at') VALUES ('onconnect', ?, ?, ?)", ((self.user.name, now, now)))
 
     # This callback is called whenever anyone posts a message
     async def on_message(self, message):

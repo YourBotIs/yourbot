@@ -10,10 +10,12 @@ defmodule YourBotWeb.BotLive do
   alias SurfaceBulma.Button
   alias YourBotWeb.Components.BotModal
   alias YourBotWeb.Components.EnvVarModal
+  alias YourBotWeb.Components.BotEventsModal
   require Logger
 
   data show_bot_dialog, :boolean, default: false
   data show_env_var_dialog, :boolean, default: false
+  data show_bot_events_dialog, :boolean, default: false
 
   def mount(_, %{"user_token" => token}, socket) do
     user = Accounts.get_user_by_session_token(token)
@@ -34,6 +36,7 @@ defmodule YourBotWeb.BotLive do
      |> assign(:bots, bots)
      |> assign(:bot_changeset, bot_changeset)
      |> assign(:environment_variable_changeset, environment_variable_changeset)
+     |> assign(:events, [])
      |> assign(:action, :create)}
   end
 
@@ -59,6 +62,15 @@ defmodule YourBotWeb.BotLive do
      |> assign(:environment_variable_changeset, environment_variable_changeset)}
   end
 
+  def handle_event("show_bot_events_dialog", _, socket) do
+    events = Bots.list_events(socket.assigns.bot_changeset.data)
+
+    {:noreply,
+     socket
+     |> assign(:show_bot_events_dialog, true)
+     |> assign(:events, events)}
+  end
+
   def handle_event("hide_dialog", _, socket) do
     bots = Bots.list_bots(socket.assigns.user)
 
@@ -66,7 +78,8 @@ defmodule YourBotWeb.BotLive do
      socket
      |> assign(:bots, bots)
      |> assign(:show_bot_dialog, false)
-     |> assign(:show_env_var_dialog, false)}
+     |> assign(:show_env_var_dialog, false)
+     |> assign(:show_bot_events_dialog, false)}
   end
 
   def handle_event("change", %{"bot" => params}, socket) do
@@ -337,6 +350,7 @@ defmodule YourBotWeb.BotLive do
     ~F"""
     <BotModal title={"#{@action} Bot"} show={ @show_bot_dialog } hide_event="hide_dialog" changeset={ @bot_changeset } />
     <EnvVarModal title={"Environment variables"} show={ @show_env_var_dialog} hide_event="hide_dialog" changeset={@environment_variable_changeset} />
+    <BotEventsModal title={"Bot Events"} show={ @show_bot_events_dialog } hide_event="hide_dialog" events={@events} />
     <div class="columns">
       <div class="column">
         <div>
@@ -373,6 +387,7 @@ defmodule YourBotWeb.BotLive do
             <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
             <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_dialog" color="primary" opts={role: "edit_bot"}>Edit Bot</Button>
             <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_env_var_dialog" color="primary" opts={role: "show_env_var_dialog"}>Env Vars</Button>
+            <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_events_dialog" color="primary" opts={role: "show_bot_events_dialog"}>Event Log</Button>
           </div>
           <div>
             {@bot_changeset.data.uptime_status}
