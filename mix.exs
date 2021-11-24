@@ -43,13 +43,13 @@ defmodule YourBot.MixProject do
     [
       {:bcrypt_elixir, "~> 2.0"},
       {:ecto_sql, "~> 3.6"},
+      {:ecto_sqlite3, "~> 0.7.1"},
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws, "~> 2.1"},
-      {:exqlite, "~> 0.7.9"},
-      {:ecto_sqlite3, "~> 0.7.1"},
+      {:ex_json_schema, "~> 0.5"},
       {:excoveralls, "~> 0.10", only: :test},
-      # {:extty, path: "extty"},
+      {:exqlite, "~> 0.7.9"},
       {:extty, github: "connorrigby/extty", branch: "updates"},
       {:floki, ">= 0.30.0", only: :test},
       {:gettext, "~> 0.18"},
@@ -63,10 +63,13 @@ defmodule YourBot.MixProject do
       {:phoenix_live_dashboard, "~> 0.5"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 0.16.0"},
+      {:phoenix_markdown, "~> 1.0"},
+      {:phoenix_swagger, "~> 0.8"},
       {:phoenix, "~> 1.6.2"},
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, ">= 0.0.0"},
       {:ring_logger, "~> 0.8.2"},
+      {:socket_drano, "~> 0.5.0"},
       {:surface_bulma, "~> 0.2"},
       {:surface_catalogue, "~> 0.2.0"},
       {:surface_formatter, "~> 0.6.0"},
@@ -77,11 +80,7 @@ defmodule YourBot.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:tesla, "~> 1.4"},
       {:wallaby, "~> 0.29.1", only: :test},
-      {:x509, "~> 0.8.3"},
-      {:phoenix_swagger, "~> 0.8"},
-      {:ex_json_schema, "~> 0.5"},
-      {:phoenix_markdown, "~> 1.0"},
-      {:socket_drano, "~> 0.5.0"}
+      {:x509, "~> 0.8.3"}
     ]
   end
 
