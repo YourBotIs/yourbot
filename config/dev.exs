@@ -95,3 +95,5 @@ config :yourbot, YourBot.Accounts.APIToken,
 config :yourbot, YourBot.Git,
   storage_dir: "storage/git",
   htpasswd: "storage/htpasswd"
+
+config :yourbot, YourBot.Bots.DB, storage_dir: "storage/db"

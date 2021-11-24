@@ -38,3 +38,4 @@ assets/js/_hooks/
 /storage
 /extty
 *.env
+/git-client/

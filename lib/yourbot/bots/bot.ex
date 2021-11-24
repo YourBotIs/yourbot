@@ -13,6 +13,7 @@ defmodule YourBot.Bots.Bot do
     field :deploy_status, Ecto.Enum, values: [:live, :stop, :edit, :error]
     field :uptime_status, Ecto.Enum, values: [:boot, :up, :down], virtual: true
     has_many :environment_variables, YourBot.Bots.EnvironmentVariable
+    has_one :db, YourBot.Bots.DB
     timestamps()
   end
 

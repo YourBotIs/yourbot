@@ -46,6 +46,8 @@ defmodule YourBot.MixProject do
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws, "~> 2.1"},
+      {:exqlite, "~> 0.7.9"},
+      {:ecto_sqlite3, "~> 0.7.1"},
       {:excoveralls, "~> 0.10", only: :test},
       # {:extty, path: "extty"},
       {:extty, github: "connorrigby/extty", branch: "updates"},

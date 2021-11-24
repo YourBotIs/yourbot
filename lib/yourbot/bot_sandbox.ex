@@ -43,11 +43,14 @@ defmodule YourBot.BotSandbox do
           {"DISCORD_TOKEN", bot.token},
           {"DISCORD_PUBLIC_KEY", bot.public_key},
           {"DISCORD_CLIENT_ID", to_string(bot.application_id)},
-          {"DISCORD_APPLICATION_ID", to_string(bot.application_id)}
+          {"DISCORD_APPLICATION_ID", to_string(bot.application_id)},
+          {"DATABASE_URL", database_url(bot)}
         ] ++
         Enum.map(bot.environment_variables, fn %{key: key, value: value} ->
           {to_string(key), to_string(value)}
         end)
+
+    _ = YourBot.Bots.create_event(bot, "boot", "pre_exec")
 
     {:ok, tty} =
       ExTTY.start_link(
@@ -148,6 +151,14 @@ defmodule YourBot.BotSandbox do
   def chroot do
     chroot = Application.get_env(:yourbot, __MODULE__)[:chroot]
     if chroot, do: ["--chroot", chroot], else: []
+  end
+
+  def database_url(bot) do
+    chroot = Application.get_env(:yourbot, __MODULE__)[:chroot]
+
+    if chroot,
+      do: Path.join(["/", "db", "#{bot.db.uuid}.sqlite3"]),
+      else: YourBot.Bots.DB.path(bot.db)
   end
 
   def default_presence do

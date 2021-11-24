@@ -78,6 +78,8 @@ config :yourbot, YourBot.Repo,
 
 config :yourbot, YourBot.BotSandbox, node_name: "yourbotis", chroot: "/var/chroot"
 
+config :yourbot, YourBot.Bots.DB, storage_dir: "/var/chroot/db"
+
 api_token_secret =
   System.get_env("API_TOKEN_SECRET") ||
     raise """

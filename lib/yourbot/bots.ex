@@ -5,17 +5,17 @@ defmodule YourBot.Bots do
   alias YourBot.Repo, warn: false
   @endpoint YourBotWeb.Endpoint
 
-  alias YourBot.Bots.{Bot, BotUser}
+  alias YourBot.Bots.{Bot, BotUser, DB}
 
   def list_bots do
     Repo.all(Bot)
-    |> Repo.preload(:environment_variables)
+    |> Repo.preload([:environment_variables, :db])
     |> Enum.map(&load_code/1)
   end
 
   def list_started_bots() do
     Repo.all(from b in Bot, where: b.deploy_status != :stop)
-    |> Repo.preload(:environment_variables)
+    |> Repo.preload([:environment_variables, :db])
     |> Enum.map(&load_code/1)
   end
 
@@ -29,7 +29,7 @@ defmodule YourBot.Bots do
       )
 
     Repo.all(from bot in Bot, where: bot.id in ^bot_ids)
-    |> Repo.preload(:environment_variables)
+    |> Repo.preload([:environment_variables, :db])
     |> Enum.map(&load_code/1)
   end
 
@@ -38,14 +38,14 @@ defmodule YourBot.Bots do
       from bot_user in BotUser,
         where: bot_user.user_id == ^user.id and bot_user.bot_id == ^bot_id
     )
-    |> Repo.preload(:bot)
+    |> Repo.preload(bot: [:environment_variables, :db])
     |> Map.fetch!(:bot)
     |> load_code()
   end
 
   def get_bot(id) do
     Repo.get!(Bot, id)
-    |> Repo.preload(:environment_variables)
+    |> Repo.preload([:environment_variables, :db])
     |> load_code()
   end
 
@@ -63,13 +63,17 @@ defmodule YourBot.Bots do
       |> Multi.insert(:bot_user, fn %{bot: %{id: bot_id}} ->
         change(%BotUser{bot_id: bot_id, user_id: user.id}, %{user_id: user.id, bot_id: bot_id})
       end)
+      |> Multi.insert(:db, fn %{bot: %{id: bot_id}} ->
+        change(%DB{bot_id: bot_id}, %{bot_id: bot_id})
+      end)
 
     case Repo.transaction(multi) do
       {:ok, %{bot: bot}} ->
-        bot = Repo.preload(bot, :environment_variables)
+        bot = Repo.preload(bot, [:environment_variables, :db])
         user = Repo.preload(user, [:discord_oauth])
         code = Bot.code_template(bot, user)
         bot = sync_code!(bot, code)
+        bot = sync_db!(bot)
         @endpoint.broadcast("crud:bots", "insert", %{new: bot})
         {:ok, bot}
 
@@ -133,6 +137,11 @@ defmodule YourBot.Bots do
     %{bot | code: code}
   end
 
+  def sync_db!(bot) do
+    :ok = DB.initialize(bot.db)
+    bot
+  end
+
   def create_environment_variable(bot, attrs \\ %{}) do
     changeset =
       change_environment_variable(%YourBot.Bots.EnvironmentVariable{bot_id: bot.id}, attrs)
@@ -190,5 +199,14 @@ defmodule YourBot.Bots do
 
   def change_environment_variable(environment_variable, attrs \\ %{}) do
     YourBot.Bots.EnvironmentVariable.changeset(environment_variable, attrs)
+  end
+
+  def create_event(bot, name, content) do
+    %{db: db} = Repo.preload(bot, [:db])
+    path = DB.path(db)
+
+    DB.Repo.with_repo(path, fn %{repo: repo} ->
+      repo.insert(%DB.Event{name: name, content: content})
+    end)
   end
 end
