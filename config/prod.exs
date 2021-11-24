@@ -41,6 +41,7 @@ config :yourbot, YourBotWeb.Endpoint,
 
 # Do not print debug messages in production
 config :logger, level: :info
+config :logger, backends: [RingLogger, :console]
 
 aws_access_key_id =
   System.get_env("AWS_ACCESS_KEY_ID") ||

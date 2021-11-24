@@ -66,6 +66,7 @@ defmodule YourBot.MixProject do
       {:phoenix, "~> 1.6.2"},
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, ">= 0.0.0"},
+      {:ring_logger, "~> 0.8.2"},
       {:surface_bulma, "~> 0.2"},
       {:surface_catalogue, "~> 0.2.0"},
       {:surface_formatter, "~> 0.6.0"},
