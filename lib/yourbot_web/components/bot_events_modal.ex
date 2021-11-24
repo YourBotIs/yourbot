@@ -22,12 +22,14 @@ defmodule YourBotWeb.Components.BotEventsModal do
             <tr>
               <th>Event</th>
               <th>Content</th>
+              <th>Inserted</th>
             </tr>
           </thead>
           <tfoot>
             <tr>
               <th>Event</th>
               <th>Content</th>
+              <th>Inserted</th>
             </tr>
           </tfoot>
           <tbody>
@@ -35,6 +37,7 @@ defmodule YourBotWeb.Components.BotEventsModal do
               <tr>
                 <td> {event.name} </td>
                 <td> {event.content} </td>
+                <td> {event.inserted_at} </td>
               </tr>
             {/for}
           </tbody>

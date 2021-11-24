@@ -23,7 +23,7 @@ from datetime import datetime
 # Configure logging. 
 # You are free to remove this code, however logs will not sent to the web console
 logger = logging.getLogger('<%= client_object %>')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Setup a stream handler to write data to stdout.
 # Stdout is piped directly to the web console
@@ -34,32 +34,43 @@ default_handler.setFormatter(formatter)
 # install the handler
 logger.addHandler(default_handler)
 
-# This class is where most of your code should go.
-# see the documentation for more information
-#   https://discordpy.readthedocs.io/en/stable/api.html#client
 class <%= client_object %>(discord.Client):
+    """
+    This class is where most of your code should go.
+    see the documentation for more information
+    https://discordpy.readthedocs.io/en/stable/api.html#client
+    """
+
     def __init__(self, con):
+        """Called upon instanciation"""
         self.con = con
         super().__init__()
 
-    # This callback is called when your client successfully
-    # connects to the discord API
-    async def on_ready(self):
-        logger.info('Logged on as {0}!'.format(self.user))
-        # Example usage of the sqlite database
-        # yourbot_event_log is the name of a special table that has
-        # been created for you. It contains 4 fields
-        # 'name' - String - classification of the event
-        # 'content' - String - value of the event
-        # 'inserted_at' - utc_date_time
-        # 'updated_at' - utc_date_time
+    def log_event(self, name, content):
+        """
+        Example usage of the sqlite database
+        yourbot_event_log is the name of a special table that has
+        been created for you. It contains 4 fields
+        'name' - String - classification of the event
+        'content' - String - value of the event
+        'inserted_at' - utc_date_time
+        'updated_at' - utc_date_time
+        """
+
         with self.con:
             now = datetime.now()
+            record = (name, content, now, now)
+            qurry = "INSERT INTO yourbot_event_log ('name','content','inserted_at','updated_at') VALUES (?, ?, ?, ?)"
             cur = con.cursor()
-            cur.execute("INSERT INTO yourbot_event_log ('name','content','inserted_at','updated_at') VALUES ('onconnect', ?, ?, ?)", ((self.user.name, now, now)))
+            cur.execute(qurry, (record))
 
-    # This callback is called whenever anyone posts a message
+    async def on_ready(self):
+        """This callback is called when your client successfully connects to Discord"""
+        logger.info('Logged on as {0}!'.format(self.user))
+        self.log_event("on_ready", self.user.name + "#" + self.user.discriminator)
+
     async def on_message(self, message):
+        """This callback is called whenever anyone posts a message"""
         logger.info('Message from {0.author}: {0.content}'.format(message))
 
 # Instanciate a connection to an sqlite database

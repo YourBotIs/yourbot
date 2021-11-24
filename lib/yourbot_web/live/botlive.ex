@@ -16,6 +16,7 @@ defmodule YourBotWeb.BotLive do
   data show_bot_dialog, :boolean, default: false
   data show_env_var_dialog, :boolean, default: false
   data show_bot_events_dialog, :boolean, default: false
+  data show_bot_select_dialog, :boolean, default: false
 
   def mount(_, %{"user_token" => token}, socket) do
     user = Accounts.get_user_by_session_token(token)
@@ -161,7 +162,14 @@ defmodule YourBotWeb.BotLive do
      socket
      |> assign(:bot_changeset, bot_changeset)
      |> assign(:action, :edit)
+     |> assign(:show_bot_select_dialog, false)
      |> push_event(:monaco_load, %{value: bot_changeset.data.code})}
+  end
+
+  def handle_event("show_bot_select_dialog", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_bot_select_dialog, !socket.assigns[:show_bot_select_dialog])}
   end
 
   def handle_event("monaco_change", %{"value" => code}, socket) do
@@ -351,53 +359,64 @@ defmodule YourBotWeb.BotLive do
     <BotModal title={"#{@action} Bot"} show={ @show_bot_dialog } hide_event="hide_dialog" changeset={ @bot_changeset } />
     <EnvVarModal title={"Environment variables"} show={ @show_env_var_dialog} hide_event="hide_dialog" changeset={@environment_variable_changeset} />
     <BotEventsModal title={"Bot Events"} show={ @show_bot_events_dialog } hide_event="hide_dialog" events={@events} />
-    <div class="columns">
-      <div class="column">
-        <div>
-          <Button click="show_bot_dialog" color="primary" opts={role: "create_bot"}>Setup New Bot</Button>
-        </div>
-
-        <aside class="menu">
-        <p class="menu-label">
-          Bots
-        </p>
-        <ul class="menu-list">
-          {#for bot <- @bots }
-            <li><a :on-click="select_bot" phx-value-bot_id={bot.id} role="select_bot"> {bot.name} - {bot.uptime_status} </a></li>
-          {/for}
-        </ul>
-        </aside>
-      </div>
-      <div class="column">
-        <MonacoEditor id="editor"/>
-        <div :if={@bot_changeset.data.id}>
-          {#for env_var <- @bot_changeset.data.environment_variables }
-            <div>
-              {env_var.key} {env_var.value}
+    <nav class="navbar" role="navigation" aria-label="dropdown navigation">
+      <div class="navbar-menu">
+        <div class="navbar-start">
+          <div class="navbar-item has-dropdown is-active">
+            <a :on-click="show_bot_select_dialog" class="navbar-link">Bots</a>
+            <div class="navbar-dropdown" :if={@show_bot_select_dialog}>
+              {#for bot <- @bots }
+                <a :on-click="select_bot" phx-value-bot_id={bot.id} role="select_bot" class="navbar-item"> {bot.name} - {bot.uptime_status} </a>
+              {/for}
             </div>
-          {/for}
+          </div>
+        </div>
+        <div class="navbar-item" :if={@bot_changeset.data.id}>
+          <Button class="button is-rounded is-primary" click="save_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
+        </div>
+        <div class="navbar-item" :if={@bot_changeset.data.id}>
+          <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
+        </div>
+        <div class="navbar-item" :if={@bot_changeset.data.id}>
+          <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
+        </div>
+        <div class="navbar-end">
+          <div class="navbar-item">
+            <Button click="show_bot_dialog" color="primary" opts={role: "create_bot"}>Setup New Bot</Button>
+          </div>
         </div>
       </div>
+    </nav>
+    <section class="block">
+      <div class="columns fullcolumn">
+        <div class="column">
+          <MonacoEditor id="editor"/>
+          <div :if={@bot_changeset.data.id}>
+            {#for env_var <- @bot_changeset.data.environment_variables }
+              <div>
+                {env_var.key} {env_var.value}
+              </div>
+            {/for}
+          </div>
+        </div>
 
-      <div class="column">
-        <section class="box">
-          <div>
-            <Button class="button is-rounded is-primary" click="save_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
-            <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
-            <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
-            <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_dialog" color="primary" opts={role: "edit_bot"}>Edit Bot</Button>
-            <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_env_var_dialog" color="primary" opts={role: "show_env_var_dialog"}>Env Vars</Button>
-            <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_events_dialog" color="primary" opts={role: "show_bot_events_dialog"}>Event Log</Button>
-          </div>
-          <div>
-            {@bot_changeset.data.uptime_status}
-            <a href={"https://discord.com/developers/applications/#{@bot_changeset.data.application_id}/bot"} :if={@bot_changeset.data.id}> Discord Management Console </a>
-            <a href={"https://discordapp.com/api/oauth2/authorize?client_id=#{@bot_changeset.data.application_id}&scope=bot&permissions=274877941760"} :if={@bot_changeset.data.id}> Invite the bot to a server </a>
-          </div>
-          <XTerm id="terminal"/>
-        </section>
+        <div class="column is-one-quarter">
+          <section class="box">
+            <div>
+              <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_dialog" color="primary" opts={role: "edit_bot"}>Edit Bot</Button>
+              <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_env_var_dialog" color="primary" opts={role: "show_env_var_dialog"}>Env Vars</Button>
+              <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_events_dialog" color="primary" opts={role: "show_bot_events_dialog"}>Event Log</Button>
+            </div>
+            <div>
+              {@bot_changeset.data.uptime_status}
+              <a href={"https://discord.com/developers/applications/#{@bot_changeset.data.application_id}/bot"} :if={@bot_changeset.data.id}> Discord Management Console </a>
+              <a href={"https://discordapp.com/api/oauth2/authorize?client_id=#{@bot_changeset.data.application_id}&scope=bot&permissions=274877941760"} :if={@bot_changeset.data.id}> Invite the bot to a server </a>
+            </div>
+            <XTerm id="terminal"/>
+          </section>
+        </div>
       </div>
-    </div>
+    </section>
     """
   end
 end

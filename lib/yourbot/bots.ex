@@ -129,6 +129,15 @@ defmodule YourBot.Bots do
     end
   end
 
+  def regenerate_code(bot, user) do
+    bot = Repo.preload(bot, [:environment_variables, :db])
+    user = Repo.preload(user, [:discord_oauth])
+    code = Bot.code_template(bot, user)
+    updated_bot = bot |> sync_code!(code) |> sync_db!()
+    @endpoint.broadcast("crud:bots", "update", %{new: updated_bot, old: bot})
+    {:ok, bot}
+  end
+
   def change_bot(bot, attrs \\ %{}) do
     Bot.changeset(bot, attrs)
   end
