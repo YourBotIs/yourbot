@@ -17,6 +17,7 @@ import discord
 import asyncio
 import logging
 import os
+from datetime import datetime
 
 # Configure logging. 
 # You are free to remove this code, however logs will not sent to the web console
@@ -36,15 +37,34 @@ logger.addHandler(default_handler)
 # see the documentation for more information
 #   https://discordpy.readthedocs.io/en/stable/api.html#client
 class <%= client_object %>(discord.Client):
+    def __init__(self, con):
+        self.con = con
+        super().__init__()
+
     # This callback is called when your client successfully
     # connects to the discord API
     async def on_ready(self):
         logger.info('Logged on as {0}!'.format(self.user))
+        # Example usage of the sqlite database
+        # yourbot_event_log is the name of a special table that has
+        # been created for you. It contains 4 fields
+        # 'name' - String - classification of the event
+        # 'content' - String - value of the event
+        # 'inserted_at' - utc_date_time
+        # 'updated_at' - utc_date_time
+        with self.con:
+            now = datetime.now()
+            cur = con.cursor()
+            cur.execute("INSERT INTO yourbot_event_log ('content','name','inserted_at','updated_at') VALUES ('onconnect', ?, ?, ?)", ((self.user.name, now, now)))
 
     # This callback is called whenever anyone posts a message
     async def on_message(self, message):
         logger.info('Message from {0.author}: {0.content}'.format(message))
 
+# Instanciate a connection to an sqlite database
+# this will be used in our client
+con = sqlite3.connect(os.environ["DATABASE_URL"])
+
 # Instanciate a client object and start it. 
-client = <%= client_object %>() 
+client = <%= client_object %>(con) 
 asyncio.create_task(client.start(os.environ['DISCORD_TOKEN']))
