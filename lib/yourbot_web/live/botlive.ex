@@ -145,10 +145,14 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("select_bot", %{"bot_id" => bot_id}, socket) do
+    socket.endpoint.unsubscribe("monaco:#{socket.assigns.bot_changeset.data.id}")
+
     bot_changeset =
       Bots.get_bot(socket.assigns.user, bot_id)
       |> sync_bot(nil)
       |> Bots.change_bot()
+
+    socket.endpoint.subscribe("monaco:#{bot_changeset.data.id}")
 
     socket =
       if YourBot.BotSupervisor.lookup_child(bot_changeset.data) do
@@ -173,6 +177,10 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("monaco_change", %{"value" => code}, socket) do
+    socket.endpoint.broadcast("monaco:#{socket.assigns.bot_changeset.data.id}", "code", %{
+      code: code
+    })
+
     changeset = Bots.change_bot(socket.assigns.bot_changeset.data, %{code: code})
 
     {:noreply,
@@ -276,6 +284,27 @@ defmodule YourBotWeb.BotLive do
     bot_changeset = sync_bot(socket.assigns.bot_changeset.data, presence) |> Bots.change_bot()
 
     {:noreply, socket |> assign(:bots, bots) |> assign(:bot_changeset, bot_changeset)}
+  end
+
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          topic: "monaco:" <> _,
+          event: "code",
+          payload: %{code: code}
+        },
+        socket
+      ) do
+    if Ecto.Changeset.get_field(socket.assigns.bot_changeset, :code) != code do
+      changeset = Bots.change_bot(socket.assigns.bot_changeset.data, %{code: code})
+      push_event(socket, :monaco_load, %{value: code})
+
+      {:noreply,
+       socket
+       |> push_event(:monaco_load, %{value: code})
+       |> assign(:bot_changeset, changeset)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def create_bot(params, socket) do
