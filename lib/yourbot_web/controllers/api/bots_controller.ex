@@ -37,6 +37,18 @@ defmodule YourBotWeb.BotsController do
             code: "print('hello, world')"
           })
         end,
+      BotEvent:
+        swagger_schema do
+          title("Bot Event")
+          description("simple key/value log")
+
+          properties do
+            name(:string, "name of the event", required: true)
+            content(:string, "content of the event", required: true)
+            inserted_at(:string, "datetime", required: true)
+            updated_at(:string, "datetime", required: true)
+          end
+        end,
       CreateBot:
         swagger_schema do
           title("Create Bot")
@@ -167,5 +179,19 @@ defmodule YourBotWeb.BotsController do
 
     {:ok, bot} = Bots.update_bot(bot, %{code: bot.code})
     render(conn, "show.json", bots: bot)
+  end
+
+  swagger_path :events do
+    get("/bots/{bot_id}/events")
+    description("list bots")
+    security([%{Bearer: []}])
+    parameter(:bot_id, :path, :string, "bot whose log to view", required: true)
+    response(200, %{data: Schema.array(:BotEvent)})
+  end
+
+  def events(conn, %{"bots_id" => bot_id}) do
+    bot = Bots.get_bot(bot_id)
+    events = Bots.list_events(bot)
+    render(conn, "index.json", events: events)
   end
 end

@@ -3,22 +3,30 @@ defmodule YourBotWeb.BotsControllerTest do
   import YourBot.UniqueData
   import YourBot.AccountsFixtures
   import YourBot.BotFixtures
+  import ExUnit.CaptureIO
 
   setup [:setup_user, :setup_discord_oauth, :setup_api_token]
 
   test "create bot", %{discord_oauth: discord_oauth, conn: conn} do
-    body =
-      conn
-      |> post(Routes.bots_path(conn, :create), %{
-        user: discord_oauth.discord_user_id,
-        bot: %{
-          name: unique_name("bot name"),
-          application_id: unique_id(),
-          public_key: unique_name("bot public_key"),
-          token: unique_name("bot token")
-        }
-      })
-      |> json_response(201)
+    # capture_io here for the same reason as botfixtures. See that for more info
+    capture_io(:stderr, fn ->
+      body =
+        conn
+        |> post(Routes.bots_path(conn, :create), %{
+          user: discord_oauth.discord_user_id,
+          bot: %{
+            name: unique_name("bot name"),
+            application_id: unique_id(),
+            public_key: unique_name("bot public_key"),
+            token: unique_name("bot token")
+          }
+        })
+        |> json_response(201)
+
+      send(self(), {:block_result, body})
+    end)
+
+    assert_received {:block_result, body}
 
     body["data"]["id"]
     body["data"]["code"]
@@ -94,5 +102,11 @@ defmodule YourBotWeb.BotsControllerTest do
     assert Enum.find(body["data"], fn %{"id" => id} ->
              id == bot.id
            end)
+  end
+
+  test "list events for a bot", %{conn: conn, bot: bot} do
+    conn = get(conn, Routes.bots_bots_path(conn, :events, bot))
+    assert body = json_response(conn, 200)
+    assert is_list(body["data"])
   end
 end

@@ -62,6 +62,35 @@
       "title": "Bot deployment status",
       "type": "object"
     },
+    "BotEvent": {
+      "description": "simple key/value log",
+      "properties": {
+        "content": {
+          "description": "content of the event",
+          "type": "string"
+        },
+        "inserted_at": {
+          "description": "datetime",
+          "type": "string"
+        },
+        "name": {
+          "description": "name of the event",
+          "type": "string"
+        },
+        "updated_at": {
+          "description": "datetime",
+          "type": "string"
+        }
+      },
+      "required": [
+        "updated_at",
+        "inserted_at",
+        "content",
+        "name"
+      ],
+      "title": "Bot Event",
+      "type": "object"
+    },
     "CreateBot": {
       "description": "Params for creating a bot",
       "example": {
@@ -639,6 +668,42 @@
         "summary": "",
         "tags": [
           "EnvironmentVariable"
+        ]
+      }
+    },
+    "/bots/{bot_id}/events": {
+      "get": {
+        "description": "list bots",
+        "operationId": "YourBotWeb.BotsController.events",
+        "parameters": [
+          {
+            "description": "bot whose log to view",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/BotEvent"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Bots"
         ]
       }
     },

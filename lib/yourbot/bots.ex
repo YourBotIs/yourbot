@@ -106,12 +106,14 @@ defmodule YourBot.Bots do
   def delete_bot(bot) do
     bot_users_query = from bot_user in BotUser, where: bot_user.bot_id == ^bot.id
     bot_env_vars_query = from ev in YourBot.Bots.EnvironmentVariable, where: ev.bot_id == ^bot.id
+    bot_db_query = from db in DB, where: db.bot_id == ^bot.id
     bot_changeset = change_bot(bot)
 
     multi =
       Multi.new()
       |> Multi.delete_all(:bot_users, bot_users_query)
       |> Multi.delete_all(:bot_environment_variables, bot_env_vars_query)
+      |> Multi.delete_all(:bot_db, bot_db_query)
       |> Multi.delete(:bot, bot_changeset)
 
     case Repo.transaction(multi) do
@@ -138,7 +140,7 @@ defmodule YourBot.Bots do
   end
 
   def sync_db!(bot) do
-    :ok = DB.initialize(bot.db)
+    _ = DB.initialize(bot.db)
     bot
   end
 
@@ -207,6 +209,15 @@ defmodule YourBot.Bots do
 
     DB.Repo.with_repo(path, fn %{repo: repo} ->
       repo.insert(%DB.Event{name: name, content: content})
+    end)
+  end
+
+  def list_events(bot) do
+    %{db: db} = Repo.preload(bot, [:db])
+    path = DB.path(db)
+
+    DB.Repo.with_repo(path, fn %{repo: repo} ->
+      repo.all(DB.Event)
     end)
   end
 end

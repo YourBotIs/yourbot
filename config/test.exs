@@ -54,3 +54,5 @@ config :ex_aws, :s3, %{
 
 config :yourbot, YourBot.Accounts.APIToken,
   secret: "sbAuPxKKmcLw3Z0hdLDaOYo2T1LbvKJqReGai+Acl0qQn+ezKvmFtIsg/tSGqR+J"
+
+config :yourbot, YourBot.Bots.DB, storage_dir: "storage/test/db"

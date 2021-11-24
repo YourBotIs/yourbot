@@ -3,14 +3,21 @@ defmodule YourBot.BotsTest do
   import YourBot.AccountsFixtures
   import YourBot.BotFixtures
   import YourBot.UniqueData
+  import ExUnit.CaptureIO
   alias YourBot.Bots
 
-  setup :setup_user
+  setup [:setup_user, :setup_discord_oauth]
 
   test "create bot", %{user: user} do
     @endpoint.subscribe("crud:bots")
     attrs = valid_bot_attrs()
-    assert {:ok, bot} = Bots.create_bot(user, attrs)
+    # capture_io here for the same reason as botfixtures. See that for more info
+    capture_io(:stderr, fn ->
+      {:ok, bot} = Bots.create_bot(user, attrs)
+      send(self(), {:block_result, bot})
+    end)
+
+    assert_received {:block_result, bot}
 
     assert_received %Phoenix.Socket.Broadcast{
       topic: "crud:bots",
@@ -19,7 +26,7 @@ defmodule YourBot.BotsTest do
     }
   end
 
-  setup [:setup_user, :setup_bot]
+  setup [:setup_user, :setup_discord_oauth, :setup_bot]
 
   test "delete bot", %{bot: bot} do
     @endpoint.subscribe("crud:bots")

@@ -15,6 +15,7 @@
 
 import discord
 import asyncio
+import sqlite3
 import logging
 import os
 from datetime import datetime
