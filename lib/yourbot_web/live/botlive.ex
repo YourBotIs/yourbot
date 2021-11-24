@@ -5,12 +5,15 @@ defmodule YourBotWeb.BotLive do
   alias MonacoEditor
   alias YourBot.Bots
   alias YourBot.Bots.Bot
+  alias YourBot.Bots.EnvironmentVariable
 
   alias SurfaceBulma.Button
   alias YourBotWeb.Components.BotModal
+  alias YourBotWeb.Components.EnvVarModal
   require Logger
 
   data show_bot_dialog, :boolean, default: false
+  data show_env_var_dialog, :boolean, default: false
 
   def mount(_, %{"user_token" => token}, socket) do
     user = Accounts.get_user_by_session_token(token)
@@ -20,6 +23,7 @@ defmodule YourBotWeb.BotLive do
       |> Enum.map(fn bot -> sync_bot(bot, nil) end)
 
     bot_changeset = Bots.change_bot(%Bot{})
+    environment_variable_changeset = Bots.change_environment_variable(%EnvironmentVariable{})
     socket.endpoint.subscribe("crud:bots")
     socket.endpoint.subscribe("bots")
     :ok = SocketDrano.monitor(socket)
@@ -29,6 +33,7 @@ defmodule YourBotWeb.BotLive do
      |> assign(:user, user)
      |> assign(:bots, bots)
      |> assign(:bot_changeset, bot_changeset)
+     |> assign(:environment_variable_changeset, environment_variable_changeset)
      |> assign(:action, :create)}
   end
 
@@ -41,13 +46,27 @@ defmodule YourBotWeb.BotLive do
      |> assign(:bot_changeset, bot_changeset)}
   end
 
+  def handle_event("show_env_var_dialog", _, socket) do
+    environment_variable_changeset =
+      Bots.change_environment_variable(%EnvironmentVariable{
+        bot_id: socket.assigns.bot_changeset.data.id
+      })
+
+    {:noreply,
+     socket
+     |> assign(:show_env_var_dialog, true)
+     |> assign(:action, :create)
+     |> assign(:environment_variable_changeset, environment_variable_changeset)}
+  end
+
   def handle_event("hide_dialog", _, socket) do
     bots = Bots.list_bots(socket.assigns.user)
 
     {:noreply,
      socket
      |> assign(:bots, bots)
-     |> assign(:show_bot_dialog, false)}
+     |> assign(:show_bot_dialog, false)
+     |> assign(:show_env_var_dialog, false)}
   end
 
   def handle_event("change", %{"bot" => params}, socket) do
@@ -72,6 +91,28 @@ defmodule YourBotWeb.BotLive do
     end
   end
 
+  def handle_event("change", %{"environment_variable" => params}, socket) do
+    case socket.assigns.action do
+      :create ->
+        bot_id = socket.assigns.bot_changeset.data.id
+
+        environment_variable_changeset =
+          Bots.change_environment_variable(%EnvironmentVariable{bot_id: bot_id}, params)
+
+        {:noreply,
+         socket
+         |> assign(:environment_variable_changeset, environment_variable_changeset)}
+
+      :edit ->
+        environment_variable_changeset =
+          Bots.change_environment_variable(socket.assigns.environment_variable_changeset, params)
+
+        {:noreply,
+         socket
+         |> assign(:environment_variable_changeset, environment_variable_changeset)}
+    end
+  end
+
   def handle_event("save", %{"bot" => params}, socket) do
     case socket.assigns.action do
       :create ->
@@ -79,6 +120,13 @@ defmodule YourBotWeb.BotLive do
 
       :edit ->
         update_bot(socket.assigns.bot_changeset.data, params, socket)
+    end
+  end
+
+  def handle_event("save", %{"environment_variable" => params}, socket) do
+    case socket.assigns.action do
+      :create ->
+        create_environment_variable(socket.assigns.bot_changeset.data, params, socket)
     end
   end
 
@@ -240,6 +288,23 @@ defmodule YourBotWeb.BotLive do
     end
   end
 
+  def create_environment_variable(bot, params, socket) do
+    case Bots.create_environment_variable(bot, params) do
+      {:ok, _} ->
+        environment_variable_changeset =
+          Bots.change_environment_variable(%EnvironmentVariable{bot_id: bot.id})
+
+        {:noreply,
+         socket
+         |> assign(:environment_variable_changeset, environment_variable_changeset)}
+
+      {:error, environment_variable_changeset} ->
+        {:noreply,
+         socket
+         |> assign(:environment_variable_changeset, environment_variable_changeset)}
+    end
+  end
+
   defp sync_bot(%YourBot.Bots.Bot{id: id} = bot, nil) do
     presence = YourBot.Bots.Presence.find(bot)
 
@@ -271,6 +336,7 @@ defmodule YourBotWeb.BotLive do
   def render(assigns) do
     ~F"""
     <BotModal title={"#{@action} Bot"} show={ @show_bot_dialog } hide_event="hide_dialog" changeset={ @bot_changeset } />
+    <EnvVarModal title={"Environment variables"} show={ @show_env_var_dialog} hide_event="hide_dialog" changeset={@environment_variable_changeset} />
     <div class="columns">
       <div class="column">
         <div>
@@ -290,6 +356,13 @@ defmodule YourBotWeb.BotLive do
       </div>
       <div class="column">
         <MonacoEditor id="editor"/>
+        <div :if={@bot_changeset.data.id}>
+          {#for env_var <- @bot_changeset.data.environment_variables }
+            <div>
+              {env_var.key} {env_var.value}
+            </div>
+          {/for}
+        </div>
       </div>
 
       <div class="column">
@@ -299,6 +372,7 @@ defmodule YourBotWeb.BotLive do
             <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
             <Button class="button is-rounded is-danger"  click="stop_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "stop_code_#{@bot_changeset.data.id}"}>Stop</Button>
             <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_dialog" color="primary" opts={role: "edit_bot"}>Edit Bot</Button>
+            <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_env_var_dialog" color="primary" opts={role: "show_env_var_dialog"}>Env Vars</Button>
           </div>
           <div>
             {@bot_changeset.data.uptime_status}
