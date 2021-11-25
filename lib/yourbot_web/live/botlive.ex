@@ -11,6 +11,8 @@ defmodule YourBotWeb.BotLive do
   alias YourBotWeb.Components.BotModal
   alias YourBotWeb.Components.EnvVarModal
   alias YourBotWeb.Components.BotEventsModal
+
+  alias YourBot.Editor.Presence
   require Logger
 
   data show_bot_dialog, :boolean, default: false
@@ -20,6 +22,7 @@ defmodule YourBotWeb.BotLive do
 
   def mount(_, %{"user_token" => token}, socket) do
     user = Accounts.get_user_by_session_token(token)
+    discord_oauth = Accounts.get_discord_oauth(user.discord_oauth_id)
 
     bots =
       Bots.list_bots(user)
@@ -29,6 +32,13 @@ defmodule YourBotWeb.BotLive do
     environment_variable_changeset = Bots.change_environment_variable(%EnvironmentVariable{})
     socket.endpoint.subscribe("crud:bots")
     socket.endpoint.subscribe("bots")
+    # socket.endpoint.subscribe("monaco_change")
+    socket.endpoint.subscribe("editors")
+
+    Presence.track(self(), "editors", socket.id, %{
+      username: "#{discord_oauth.username}##{discord_oauth.discriminator}"
+    })
+
     :ok = SocketDrano.monitor(socket)
 
     {:ok,
@@ -182,16 +192,21 @@ defmodule YourBotWeb.BotLive do
 
   def handle_event("save_code", %{}, socket) do
     if Ecto.Changeset.get_change(socket.assigns.bot_changeset, :code) do
-      bot_changeset =
+      {:ok, code} = YourBot.Editor.format(socket.assigns.bot_changeset.changes.code)
+
+      bot =
         Bots.sync_code!(
           socket.assigns.bot_changeset.data,
-          socket.assigns.bot_changeset.changes.code
+          code
         )
-        |> Bots.change_bot()
+
+      {:ok, bot} = Bots.update_bot(bot, %{code: code})
+      bot_changeset = Bots.change_bot(bot)
 
       {:noreply,
        socket
-       |> assign(:bot_changeset, bot_changeset)}
+       |> assign(:bot_changeset, bot_changeset)
+       |> push_event(:monaco_load, %{value: code})}
     else
       {:noreply, socket}
     end
@@ -262,6 +277,19 @@ defmodule YourBotWeb.BotLive do
 
   def handle_info(
         %Phoenix.Socket.Broadcast{
+          topic: "editors",
+          event: "presence_diff",
+          payload: presence
+        },
+        socket
+      ) do
+    # online = socket.assigns.online
+    IO.inspect(presence)
+    {:noreply, socket}
+  end
+
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
           topic: "bots",
           event: "presence_diff",
           payload: presence
@@ -276,6 +304,28 @@ defmodule YourBotWeb.BotLive do
     bot_changeset = sync_bot(socket.assigns.bot_changeset.data, presence) |> Bots.change_bot()
 
     {:noreply, socket |> assign(:bots, bots) |> assign(:bot_changeset, bot_changeset)}
+  end
+
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          topic: "monaco_change",
+          payload: %{code: code, bot_id: bot_id, self: pid}
+        },
+        socket
+      ) do
+    correct_bot? = bot_id == socket.assigns.bot_changeset.data.id
+    correct_pid? = pid != self()
+
+    if correct_bot? && correct_pid? do
+      changeset = Bots.change_bot(socket.assigns.bot_changeset.data, %{code: code})
+
+      {:noreply,
+       socket
+       |> push_event(:monaco_load, %{value: code})
+       |> assign(:bot_changeset, changeset)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def create_bot(params, socket) do

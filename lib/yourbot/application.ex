@@ -15,6 +15,7 @@ defmodule YourBot.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: YourBot.PubSub},
       YourBot.Bots.Presence,
+      YourBot.Editor.Presence,
       {Registry, keys: :unique, name: YourBot.BotNameProvider},
       YourBot.BotSupervisor,
       # Start the Endpoint (http/https)
