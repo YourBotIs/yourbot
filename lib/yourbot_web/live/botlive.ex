@@ -192,11 +192,14 @@ defmodule YourBotWeb.BotLive do
 
   def handle_event("save_code", %{}, socket) do
     if Ecto.Changeset.get_change(socket.assigns.bot_changeset, :code) do
-      {:ok, code} = YourBot.Editor.format(socket.assigns.bot_changeset.changes.code)
+      code = socket.assigns.bot_changeset.changes.code
+      # {:ok, code} = YourBot.Editor.format(socket.assigns.bot_changeset.changes.code)
+      [file | _] = socket.assigns.bot_changeset.files
 
       bot =
         Bots.sync_code!(
           socket.assigns.bot_changeset.data,
+          file,
           code
         )
 
@@ -235,6 +238,25 @@ defmodule YourBotWeb.BotLive do
     |> YourBot.BotSupervisor.terminate_child()
 
     {:noreply, socket}
+  end
+
+  def handle_event("create_file", %{}, socket) do
+    case YourBot.Bots.create_file(socket.assigns.bot_changeset.data, %{
+           "name" => "file2.py",
+           "code" => "# Hello, World"
+         }) do
+      {:ok, file} ->
+        bot =
+          YourBot.Bots.get_bot(socket.assigns.bot_changeset.data.id)
+          |> YourBot.Bots.load_code(file)
+
+        bot_changeset = YourBot.Bots.change_bot(bot, %{})
+
+        {:noreply,
+         socket
+         |> assign(:bot_changeset, bot_changeset)
+         |> push_event(:monaco_load, %{value: bot.code})}
+    end
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{topic: "crud:bots", payload: data}, socket) do
@@ -418,6 +440,20 @@ defmodule YourBotWeb.BotLive do
               {#for bot <- @bots }
                 <a :on-click="select_bot" phx-value-bot_id={bot.id} role="select_bot" class="navbar-item"> {bot.name} - {bot.uptime_status} </a>
               {/for}
+            </div>
+          </div>
+          <div class="navbar-item" :if={@bot_changeset.data.id}>
+            {@bot_changeset.data.name}
+            <div class="tabs is-small">
+              <ul>
+                <li class="is-active"><a> client.py </a></li>
+                {#for file <- tl(@bot_changeset.data.files) }
+                  <li class="" :on-click=""><a> {file.name} </a></li>
+                {/for}
+                <a>
+                  <span class="icon is-small" :on-click="create_file"><i class="fas fa-plus" aria-hidden="true"></i></span>
+                </a>
+              </ul>
             </div>
           </div>
         </div>

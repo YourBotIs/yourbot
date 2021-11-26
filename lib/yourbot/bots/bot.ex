@@ -14,6 +14,7 @@ defmodule YourBot.Bots.Bot do
     field :uptime_status, Ecto.Enum, values: [:boot, :up, :down], virtual: true
     has_many :environment_variables, YourBot.Bots.EnvironmentVariable
     has_one :db, YourBot.Bots.DB
+    has_many :files, YourBot.Bots.File
     timestamps()
   end
 

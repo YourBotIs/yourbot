@@ -5,18 +5,54 @@ defmodule YourBot.Bots do
   alias YourBot.Repo, warn: false
   @endpoint YourBotWeb.Endpoint
 
-  alias YourBot.Bots.{Bot, BotUser, DB}
+  alias YourBot.Bots.{Bot, BotUser, DB, File}
+
+  def migrate_bot(%Bot{files: []} = bot) do
+    bot = load_code(bot, :legacy)
+    file = Repo.insert!(%File{bot_id: bot.id, name: "client.py"})
+    # uuids are generated after insert. Load it back again
+    file = Repo.get!(File, file.id)
+    sync_code!(bot, file, bot.code)
+  end
+
+  def create_file(bot, attrs \\ %{}) do
+    changeset = File.changeset(%File{bot_id: bot.id}, attrs)
+
+    case Repo.insert(changeset) do
+      {:ok, file} ->
+        file = Repo.get!(File, file.id)
+        @endpoint.broadcast("crud:files", "insert", %{new: file})
+        sync_code!(bot, file, get_change(changeset, :code, ""))
+        {:ok, file}
+
+      error ->
+        error
+    end
+  end
+
+  def delete_file(file) do
+    case Repo.delete(file) do
+      {:ok, file} ->
+        @endpoint.broadcast("crud:files", "delete", %{old: file})
+
+        ExAws.S3.delete_object("bots", file.uuid)
+        |> ExAws.request!()
+
+      error ->
+        error
+    end
+  end
 
   def list_bots do
     Repo.all(Bot)
-    |> Repo.preload([:environment_variables, :db])
-    |> Enum.map(&load_code/1)
+    |> Repo.preload([:environment_variables, :db, :files])
+    |> Enum.map(&load_code(&1, :default))
   end
 
   def list_started_bots() do
     Repo.all(from b in Bot, where: b.deploy_status != :stop)
-    |> Repo.preload([:environment_variables, :db])
-    |> Enum.map(&load_code/1)
+    |> Repo.preload([:environment_variables, :db, :files])
+    |> Enum.map(&load_code(&1, :default))
   end
 
   def list_bots(user) do
@@ -29,8 +65,8 @@ defmodule YourBot.Bots do
       )
 
     Repo.all(from bot in Bot, where: bot.id in ^bot_ids)
-    |> Repo.preload([:environment_variables, :db])
-    |> Enum.map(&load_code/1)
+    |> Repo.preload([:environment_variables, :db, :files])
+    |> Enum.map(&load_code(&1, :default))
   end
 
   def get_bot(user, bot_id) do
@@ -38,19 +74,29 @@ defmodule YourBot.Bots do
       from bot_user in BotUser,
         where: bot_user.user_id == ^user.id and bot_user.bot_id == ^bot_id
     )
-    |> Repo.preload(bot: [:environment_variables, :db])
+    |> Repo.preload(bot: [:environment_variables, :db, :files])
     |> Map.fetch!(:bot)
-    |> load_code()
+    |> load_code(:default)
   end
 
   def get_bot(id) do
     Repo.get!(Bot, id)
-    |> Repo.preload([:environment_variables, :db])
-    |> load_code()
+    |> Repo.preload([:environment_variables, :db, :files])
+    |> load_code(:default)
   end
 
-  def load_code(bot) do
-    %{body: body} = ExAws.S3.get_object("bots", "#{bot.id}/client.py") |> ExAws.request!()
+  def load_code(bot, :legacy) do
+    %{body: body} = ExAws.S3.get_object("bots", "client.py") |> ExAws.request!()
+    %{bot | code: body}
+  end
+
+  def load_code(bot, :default) do
+    [%{name: "client.py"} = file | _] = bot.files
+    load_code(bot, file)
+  end
+
+  def load_code(bot, file) do
+    %{body: body} = ExAws.S3.get_object("bots", file.uuid) |> ExAws.request!()
     %{bot | code: body}
   end
 
@@ -66,13 +112,16 @@ defmodule YourBot.Bots do
       |> Multi.insert(:db, fn %{bot: %{id: bot_id}} ->
         change(%DB{bot_id: bot_id}, %{bot_id: bot_id})
       end)
+      |> Multi.insert(:file, fn %{bot: %{id: bot_id}} ->
+        change(%File{bot_id: bot_id, name: "client.py"})
+      end)
 
     case Repo.transaction(multi) do
-      {:ok, %{bot: bot}} ->
-        bot = Repo.preload(bot, [:environment_variables, :db])
+      {:ok, %{bot: bot, file: file}} ->
+        bot = Repo.preload(bot, [:environment_variables, :db, :files])
         user = Repo.preload(user, [:discord_oauth])
         code = Bot.code_template(bot, user)
-        bot = sync_code!(bot, code)
+        bot = sync_code!(bot, file, code)
         bot = sync_db!(bot)
         @endpoint.broadcast("crud:bots", "insert", %{new: bot})
         {:ok, bot}
@@ -89,7 +138,7 @@ defmodule YourBot.Bots do
       {:ok, updated_bot} ->
         updated_bot = Repo.preload(updated_bot, [:environment_variables])
         @endpoint.broadcast!("crud:bots", "update", %{new: updated_bot, old: bot})
-        {:ok, sync_code!(updated_bot, bot.code)}
+        {:ok, bot}
 
       {:error, changeset} ->
         {:error, changeset}
@@ -107,6 +156,7 @@ defmodule YourBot.Bots do
     bot_users_query = from bot_user in BotUser, where: bot_user.bot_id == ^bot.id
     bot_env_vars_query = from ev in YourBot.Bots.EnvironmentVariable, where: ev.bot_id == ^bot.id
     bot_db_query = from db in DB, where: db.bot_id == ^bot.id
+    bot_files_query = from file in File, where: file.bot_id == ^bot.id
     bot_changeset = change_bot(bot)
 
     multi =
@@ -114,12 +164,15 @@ defmodule YourBot.Bots do
       |> Multi.delete_all(:bot_users, bot_users_query)
       |> Multi.delete_all(:bot_environment_variables, bot_env_vars_query)
       |> Multi.delete_all(:bot_db, bot_db_query)
+      |> Multi.delete_all(:bot_files, bot_files_query)
       |> Multi.delete(:bot, bot_changeset)
 
     case Repo.transaction(multi) do
-      {:ok, %{bot: bot}} ->
-        ExAws.S3.delete_object("bots", "#{bot.id}/client.py")
-        |> ExAws.request!()
+      {:ok, %{bot: bot, bot_files: files}} ->
+        for file <- files do
+          ExAws.S3.delete_object("bots", file.uuid)
+          |> ExAws.request!()
+        end
 
         @endpoint.broadcast("crud:bots", "delete", %{old: bot})
         {:ok, bot}
@@ -130,10 +183,11 @@ defmodule YourBot.Bots do
   end
 
   def regenerate_code(bot, user) do
-    bot = Repo.preload(bot, [:environment_variables, :db])
+    bot = Repo.preload(bot, [:environment_variables, :db, :files])
     user = Repo.preload(user, [:discord_oauth])
     code = Bot.code_template(bot, user)
-    updated_bot = bot |> sync_code!(code) |> sync_db!()
+    %{name: "client.py"} = file = List.first(bot.files)
+    updated_bot = bot |> sync_code!(file, code) |> sync_db!()
     @endpoint.broadcast("crud:bots", "update", %{new: updated_bot, old: bot})
     {:ok, bot}
   end
@@ -142,8 +196,8 @@ defmodule YourBot.Bots do
     Bot.changeset(bot, attrs)
   end
 
-  def sync_code!(bot, code) do
-    request = ExAws.S3.put_object("bots", "#{bot.id}/client.py", code)
+  def sync_code!(bot, file, code) do
+    request = ExAws.S3.put_object("bots", file.uuid, code)
     _ = ExAws.request!(request)
     %{bot | code: code}
   end

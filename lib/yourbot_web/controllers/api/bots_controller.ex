@@ -175,7 +175,7 @@ defmodule YourBotWeb.BotsController do
   def code(conn, %{"bots_id" => bot_id, "code" => code}) do
     code = File.read!(code.path)
     bot = Bots.get_bot(bot_id)
-    bot = Bots.sync_code!(bot, code)
+    bot = Bots.sync_code!(bot, :defauld, code)
 
     {:ok, bot} = Bots.update_bot(bot, %{code: bot.code})
     render(conn, "show.json", bots: bot)

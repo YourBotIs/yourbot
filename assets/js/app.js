@@ -3,6 +3,7 @@
 import "../css/app.css"
 import "bulma/css/bulma.css"
 import "xterm/css/xterm.css"
+import "@fortawesome/fontawesome-free/css/all.css"
 
 // If you want to use Phoenix channels, run `mix help phx.gen.channel`
 // to get started and then uncomment the line below.

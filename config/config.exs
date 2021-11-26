@@ -43,7 +43,7 @@ config :esbuild,
   version: "0.12.18",
   default: [
     args:
-      ~w(js/app.js --loader:.ttf=file --bundle --target=es2016 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* editor.worker=monaco-editor/esm/vs/editor/editor.worker.js ts.worker=monaco-editor/esm/vs/language/typescript/ts.worker lua=monaco-editor/esm/vs/basic-languages/lua/lua.js python=monaco-editor/esm/vs/basic-languages/python/python.js),
+      ~w(js/app.js --loader:.ttf=file --loader:.svg=file --loader:.eot=file --loader:.woff2=file --loader:.woff=file --bundle --target=es2016 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* editor.worker=monaco-editor/esm/vs/editor/editor.worker.js ts.worker=monaco-editor/esm/vs/language/typescript/ts.worker lua=monaco-editor/esm/vs/basic-languages/lua/lua.js python=monaco-editor/esm/vs/basic-languages/python/python.js),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
