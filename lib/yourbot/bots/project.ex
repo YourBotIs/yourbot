@@ -14,7 +14,14 @@ defmodule YourBot.Bots.Project do
 
     def initialize(%YourBot.Bots.Project.Container{} = container) do
       YourBot.Bots.Project.Repo.with_repo(container, fn %{pid: pid} ->
-        _ = Ecto.Migrator.run(YourBot.Bots.Project.Repo, :up, all: true, dynamic_repo: pid)
+        _ =
+          Ecto.Migrator.run(YourBot.Bots.Project.Repo, :up,
+            all: true,
+            dynamic_repo: pid,
+            log: :debug,
+            log_migrations_sql: :debug,
+            log_migrator_sql: :debug
+          )
       end)
 
       {:ok, container}

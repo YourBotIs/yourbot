@@ -154,7 +154,7 @@ defmodule YourBot.BotSandbox do
     chroot = Application.get_env(:yourbot, __MODULE__)[:chroot]
 
     if chroot,
-      do: Path.join(["/", "db", "#{bot.db.uuid}.sqlite3"]),
+      do: Path.join(["/", "db", "#{bot.project.uuid}.sqlite3"]),
       else: YourBot.Bots.Project.Container.path(bot.project)
   end
 
