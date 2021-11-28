@@ -20,7 +20,6 @@ defmodule YourBotWeb.BotsView do
       token: bot.token,
       application_id: bot.application_id,
       public_key: bot.public_key,
-      code: bot.code,
       deploy_status: bot.deploy_status
     }
   end

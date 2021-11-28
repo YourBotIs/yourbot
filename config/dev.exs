@@ -96,4 +96,4 @@ config :yourbot, YourBot.Git,
   storage_dir: "storage/git",
   htpasswd: "storage/htpasswd"
 
-config :yourbot, YourBot.Bots.DB, storage_dir: "storage/db"
+config :yourbot, YourBot.Bots.Project, storage_dir: "storage/db"

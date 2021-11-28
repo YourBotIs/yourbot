@@ -43,7 +43,7 @@ defmodule YourBot.AccountsFixtures do
   def setup_discord_oauth(env) do
     {:ok, discord_oauth} = YourBot.Accounts.create_discord_oauth(valid_discord_oauth_attributes())
     {:ok, user} = YourBot.Accounts.assoc_discord_oauth(env.user, discord_oauth)
-    Map.put(%{env | user: user}, :discord_oauth, discord_oauth)
+    Map.put(%{env | user: %{user | discord_oauth: discord_oauth}}, :discord_oauth, discord_oauth)
   end
 
   def setup_api_token(env) do

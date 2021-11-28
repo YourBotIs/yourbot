@@ -2,6 +2,7 @@ defmodule YourBotWeb.EnvironmentVariableController do
   use YourBotWeb, :controller
 
   alias YourBot.Bots
+  alias YourBot.Bots.Project
 
   action_fallback YourBotWeb.FallbackController
 
@@ -53,7 +54,8 @@ defmodule YourBotWeb.EnvironmentVariableController do
 
   def index(conn, %{"bots_id" => bot_id}) do
     bot = Bots.get_bot(bot_id)
-    render(conn, "index.json", environment_variables: bot.environment_variables)
+    project = Project.load_project(bot.project)
+    render(conn, "index.json", environment_variables: project.environment_variables)
   end
 
   swagger_path :create do
@@ -76,7 +78,7 @@ defmodule YourBotWeb.EnvironmentVariableController do
   def create(conn, %{"bots_id" => bot_id, "environment_variable" => params}) do
     bot = Bots.get_bot(bot_id)
 
-    with {:ok, environment_variable} <- Bots.create_environment_variable(bot, params) do
+    with {:ok, environment_variable} <- Project.create_environment_variable(bot.project, params) do
       conn
       |> put_status(:created)
       |> put_resp_header(
@@ -98,7 +100,7 @@ defmodule YourBotWeb.EnvironmentVariableController do
 
   def show(conn, %{"bots_id" => bot_id, "id" => environment_variable_id}) do
     bot = Bots.get_bot(bot_id)
-    environment_variable = Bots.get_environment_variable(bot, environment_variable_id)
+    environment_variable = Project.get_environment_variable(bot.project, environment_variable_id)
     render(conn, "show.json", %{environment_variable: environment_variable})
   end
 
@@ -126,10 +128,10 @@ defmodule YourBotWeb.EnvironmentVariableController do
         "environment_variable" => params
       }) do
     bot = Bots.get_bot(bot_id)
-    environment_variable = Bots.get_environment_variable(bot, environment_variable_id)
+    environment_variable = Project.get_environment_variable(bot.project, environment_variable_id)
 
     with {:ok, environment_variable} <-
-           Bots.update_environment_variable(environment_variable, params) do
+           Project.update_environment_variable(bot.project, environment_variable, params) do
       render(conn, "show.json", environment_variable: environment_variable)
     end
   end
@@ -145,9 +147,10 @@ defmodule YourBotWeb.EnvironmentVariableController do
 
   def delete(conn, %{"bots_id" => bot_id, "id" => environment_variable_id}) do
     bot = Bots.get_bot(bot_id)
-    environment_variable = Bots.get_environment_variable(bot, environment_variable_id)
+    environment_variable = Project.get_environment_variable(bot.project, environment_variable_id)
 
-    with {:ok, _environment_variable} <- Bots.delete_environment_variable(environment_variable) do
+    with {:ok, _environment_variable} <-
+           Project.delete_environment_variable(bot.project, environment_variable) do
       send_resp(conn, :no_content, "")
     end
   end

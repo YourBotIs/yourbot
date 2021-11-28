@@ -29,7 +29,6 @@ defmodule YourBotWeb.BotsControllerTest do
     assert_received {:block_result, body}
 
     body["data"]["id"]
-    body["data"]["code"]
     body["data"]["application_id"]
     body["data"]["public_key"]
     body["data"]["token"]
@@ -47,7 +46,6 @@ defmodule YourBotWeb.BotsControllerTest do
 
     assert found = Enum.find(body["data"], fn %{"id" => bot_id} -> bot_id == bot.id end)
 
-    assert found["code"] == bot.code
     assert found["application_id"] == bot.application_id
     assert found["public_key"] == bot.public_key
     assert found["token"] == bot.token
@@ -65,7 +63,6 @@ defmodule YourBotWeb.BotsControllerTest do
       })
       |> json_response(200)
 
-    assert body["data"]["code"] == bot.code
     assert body["data"]["application_id"] == bot.application_id
     assert body["data"]["public_key"] == bot.public_key
     assert body["data"]["token"] == bot.token
@@ -78,7 +75,6 @@ defmodule YourBotWeb.BotsControllerTest do
       |> get(Routes.bots_path(conn, :show, bot))
       |> json_response(200)
 
-    assert body["data"]["code"] == bot.code
     assert body["data"]["application_id"] == bot.application_id
     assert body["data"]["public_key"] == bot.public_key
     assert body["data"]["token"] == bot.token

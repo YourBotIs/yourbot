@@ -82,7 +82,7 @@ config :yourbot, :phoenix_swagger,
 config :phoenix_swagger, json_library: Jason
 config :phoenix, :template_engines, md: PhoenixMarkdown.Engine
 
-config :yourbot, YourBot.Bots.DB.Repo, priv: "priv/sandbox/"
+config :yourbot, YourBot.Bots.Project.Repo, priv: "priv/sandbox/"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

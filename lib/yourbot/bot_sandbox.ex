@@ -2,6 +2,7 @@ defmodule YourBot.BotSandbox do
   use GenServer
   import YourBot.BotNameProvider, only: [via: 2]
   alias YourBot.Bots.Bot
+  alias YourBot.Bots.Project
   alias YourBot.Bots.Presence
   require Logger
 
@@ -13,7 +14,8 @@ defmodule YourBot.BotSandbox do
 
   def exec_code(bot, pid \\ nil) do
     pid = pid || GenServer.whereis(via(bot, __MODULE__))
-    GenServer.cast({__MODULE__, :"#{bot.id}@#{node_name()}"}, {:code, bot.code, pid})
+    file = Project.get_entrypoint_file(bot.project)
+    GenServer.cast({__MODULE__, :"#{bot.id}@#{node_name()}"}, {:code, file.content, pid})
   end
 
   def get_stdout(bot) do
@@ -27,6 +29,7 @@ defmodule YourBot.BotSandbox do
     python = System.find_executable("python3")
     sandbox_py = Application.app_dir(:yourbot, ["priv", "sandbox", "sandbox.py"])
     {:ok, _presence} = Presence.track(self(), "bots", "#{bot.id}", default_presence())
+    project = Project.load_project(bot.project)
 
     args =
       [
@@ -39,18 +42,12 @@ defmodule YourBot.BotSandbox do
 
     env =
       Enum.map(:os.env(), fn {key, _} -> {to_string(key), nil} end) ++
-        [
-          {"DISCORD_TOKEN", bot.token},
-          {"DISCORD_PUBLIC_KEY", bot.public_key},
-          {"DISCORD_CLIENT_ID", to_string(bot.application_id)},
-          {"DISCORD_APPLICATION_ID", to_string(bot.application_id)},
-          {"DATABASE_URL", database_url(bot)}
-        ] ++
-        Enum.map(bot.environment_variables, fn %{key: key, value: value} ->
+        Enum.map(project.environment_variables, fn %{key: key, value: value} ->
           {to_string(key), to_string(value)}
-        end)
-
-    _ = YourBot.Bots.create_event(bot, "boot", "pre_exec")
+        end) ++
+        [
+          {"DATABASE_URL", database_url(bot)}
+        ]
 
     {:ok, tty} =
       ExTTY.start_link(
@@ -158,7 +155,7 @@ defmodule YourBot.BotSandbox do
 
     if chroot,
       do: Path.join(["/", "db", "#{bot.db.uuid}.sqlite3"]),
-      else: YourBot.Bots.DB.path(bot.db)
+      else: YourBot.Bots.Project.Container.path(bot.project)
   end
 
   def default_presence do

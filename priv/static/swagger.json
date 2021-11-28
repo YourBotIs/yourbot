@@ -8,7 +8,6 @@
       "description": "Describes a bot object",
       "example": {
         "application_id": "123455",
-        "code": "print('hello, world')",
         "name": "MiataBot",
         "public_key": "12345",
         "token": "super secret"
@@ -17,10 +16,6 @@
         "application_id": {
           "description": "Discord ID",
           "type": "integer"
-        },
-        "code": {
-          "description": "Python code",
-          "type": "string"
         },
         "deploy_status": {
           "description": {
@@ -43,7 +38,6 @@
       },
       "required": [
         "deploy_status",
-        "code",
         "public_key",
         "application_id",
         "token",
@@ -96,7 +90,6 @@
       "example": {
         "bot": {
           "application_id": "123455",
-          "code": "print('hello, world')",
           "name": "MiataBot",
           "public_key": "12345",
           "token": "super secret"
@@ -108,10 +101,6 @@
             "application_id": {
               "description": "Discord ID",
               "type": "integer"
-            },
-            "code": {
-              "description": "Python code",
-              "type": "string"
             },
             "name": {
               "description": "Unique Name of the Bot",
@@ -127,7 +116,6 @@
             }
           },
           "required": [
-            "code",
             "public_key",
             "application_id",
             "token",
@@ -161,6 +149,30 @@
         }
       },
       "title": "Create env var",
+      "type": "object"
+    },
+    "CreateFile": {
+      "description": "Params for creating a file",
+      "properties": {
+        "file": {
+          "properties": {
+            "content": {
+              "description": "content of the file",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique name of the file",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "name"
+          ],
+          "type": "object"
+        }
+      },
+      "title": "Create file",
       "type": "object"
     },
     "CreateUser": {
@@ -232,6 +244,35 @@
         "key"
       ],
       "title": "EnvironmentVariable",
+      "type": "object"
+    },
+    "File": {
+      "description": "Describes a file",
+      "example": {
+        "content": "print('hello, world')",
+        "name": "client.py",
+        "uuid": "1503f7f7-1d90-4619-b969-e4ca9e8c1b45"
+      },
+      "properties": {
+        "content": {
+          "description": "content of the file",
+          "type": "string"
+        },
+        "name": {
+          "description": "Unique name of the file",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "unique id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "uuid",
+        "content",
+        "name"
+      ],
+      "title": "File",
       "type": "object"
     },
     "User": {
@@ -707,6 +748,211 @@
         ]
       }
     },
+    "/bots/{bot_id}/file/{file_id}": {
+      "get": {
+        "description": "show an env var for a bot",
+        "operationId": "YourBotWeb.FileController.show",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "File ID",
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/File"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/bots/{bot_id}/files": {
+      "get": {
+        "description": "list files for a bot project",
+        "operationId": "YourBotWeb.FileController.index",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/File"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/bots/{bot_id}/files/": {
+      "post": {
+        "description": "create a file",
+        "operationId": "YourBotWeb.FileController.create",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "File to create",
+            "in": "body",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateFile"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "$ref": "#/definitions/File"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/bots/{bot_id}/files/{file_id}": {
+      "delete": {
+        "description": "delete an env var",
+        "operationId": "YourBotWeb.FileController.delete",
+        "parameters": [
+          {
+            "description": "Bot to delete",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "Environment Variable ID",
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {}
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "File"
+        ]
+      },
+      "patch": {
+        "description": "Update a file",
+        "operationId": "YourBotWeb.FileController.update",
+        "parameters": [
+          {
+            "description": "Bot ID to use",
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "File ID",
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "var to update",
+            "in": "body",
+            "name": "environment_variable",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateFile"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": {
+              "data": {
+                "items": {
+                  "$ref": "#/definitions/File"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "File"
+        ]
+      }
+    },
     "/users/": {
       "post": {
         "description": "create a user",
@@ -868,7 +1114,11 @@
     },
     {
       "description": "Operations about env vars",
-      "name": "EnvironmentVariables"
+      "name": "EnvironmentVariable"
+    },
+    {
+      "description": "Operations about project files",
+      "name": "File"
     }
   ]
 }

@@ -5,7 +5,9 @@ defmodule YourBotWeb.BotLive do
   alias MonacoEditor
   alias YourBot.Bots
   alias YourBot.Bots.Bot
-  alias YourBot.Bots.EnvironmentVariable
+  alias YourBot.Bots.Project
+  alias YourBot.Bots.Project.File
+  alias YourBot.Bots.Project.EnvironmentVariable
 
   alias SurfaceBulma.Button
   alias YourBotWeb.Components.BotModal
@@ -29,7 +31,8 @@ defmodule YourBotWeb.BotLive do
       |> Enum.map(fn bot -> sync_bot(bot, nil) end)
 
     bot_changeset = Bots.change_bot(%Bot{})
-    environment_variable_changeset = Bots.change_environment_variable(%EnvironmentVariable{})
+    environment_variable_changeset = Project.change_environment_variable(%EnvironmentVariable{})
+    file_changeset = Project.change_file(%File{})
     socket.endpoint.subscribe("crud:bots")
     socket.endpoint.subscribe("bots")
     # socket.endpoint.subscribe("monaco_change")
@@ -47,6 +50,9 @@ defmodule YourBotWeb.BotLive do
      |> assign(:bots, bots)
      |> assign(:bot_changeset, bot_changeset)
      |> assign(:environment_variable_changeset, environment_variable_changeset)
+     |> assign(:file_changeset, file_changeset)
+     |> assign(:files, [])
+     |> assign(:environment_files, [])
      |> assign(:events, [])
      |> assign(:action, :create)}
   end
@@ -61,10 +67,7 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("show_env_var_dialog", _, socket) do
-    environment_variable_changeset =
-      Bots.change_environment_variable(%EnvironmentVariable{
-        bot_id: socket.assigns.bot_changeset.data.id
-      })
+    environment_variable_changeset = Project.change_environment_variable(%EnvironmentVariable{})
 
     {:noreply,
      socket
@@ -74,7 +77,7 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("show_bot_events_dialog", _, socket) do
-    events = Bots.list_events(socket.assigns.bot_changeset.data)
+    events = Project.list_events(socket.assigns.bot_changeset.data.project)
 
     {:noreply,
      socket
@@ -118,10 +121,8 @@ defmodule YourBotWeb.BotLive do
   def handle_event("change", %{"environment_variable" => params}, socket) do
     case socket.assigns.action do
       :create ->
-        bot_id = socket.assigns.bot_changeset.data.id
-
         environment_variable_changeset =
-          Bots.change_environment_variable(%EnvironmentVariable{bot_id: bot_id}, params)
+          Project.change_environment_variable(%EnvironmentVariable{}, params)
 
         {:noreply,
          socket
@@ -129,7 +130,10 @@ defmodule YourBotWeb.BotLive do
 
       :edit ->
         environment_variable_changeset =
-          Bots.change_environment_variable(socket.assigns.environment_variable_changeset, params)
+          Project.change_environment_variable(
+            socket.assigns.environment_variable_changeset,
+            params
+          )
 
         {:noreply,
          socket
@@ -160,6 +164,14 @@ defmodule YourBotWeb.BotLive do
       |> sync_bot(nil)
       |> Bots.change_bot()
 
+    file_changeset =
+      Project.get_entrypoint_file(bot_changeset.data.project)
+      |> Project.change_file()
+
+    files = Project.list_files(bot_changeset.data.project)
+
+    environment_variables = Project.list_environment_variables(bot_changeset.data.project)
+
     socket =
       if YourBot.BotSupervisor.lookup_child(bot_changeset.data) do
         tty_data = YourBot.BotSandbox.get_stdout(bot_changeset.data) |> Enum.join()
@@ -171,9 +183,12 @@ defmodule YourBotWeb.BotLive do
     {:noreply,
      socket
      |> assign(:bot_changeset, bot_changeset)
+     |> assign(:file_changeset, file_changeset)
+     |> assign(:files, files)
+     |> assign(:environment_variables, environment_variables)
      |> assign(:action, :edit)
      |> assign(:show_bot_select_dialog, false)
-     |> push_event(:monaco_load, %{value: bot_changeset.data.code})}
+     |> push_event(:monaco_load, %{value: file_changeset.data.content})}
   end
 
   def handle_event("show_bot_select_dialog", _, socket) do
@@ -183,33 +198,30 @@ defmodule YourBotWeb.BotLive do
   end
 
   def handle_event("monaco_change", %{"value" => code}, socket) do
-    changeset = Bots.change_bot(socket.assigns.bot_changeset.data, %{code: code})
+    changeset = Project.change_file(socket.assigns.file_changeset.data, %{content: code})
 
     {:noreply,
      socket
-     |> assign(:bot_changeset, changeset)}
+     |> assign(:file_changeset, changeset)}
   end
 
   def handle_event("save_code", %{}, socket) do
-    if Ecto.Changeset.get_change(socket.assigns.bot_changeset, :code) do
-      code = socket.assigns.bot_changeset.changes.code
-      # {:ok, code} = YourBot.Editor.format(socket.assigns.bot_changeset.changes.code)
-      [file | _] = socket.assigns.bot_changeset.files
+    if Ecto.Changeset.get_change(socket.assigns.file_changeset, :content) do
+      code = socket.assigns.file_changeset.changes.content
 
-      bot =
-        Bots.sync_code!(
-          socket.assigns.bot_changeset.data,
-          file,
-          code
-        )
+      case Project.update_file(
+             socket.assigns.bot_changeset.data.project,
+             socket.assigns.file_changeset.data,
+             %{content: code}
+           ) do
+        {:ok, file} ->
+          file_changeset = Project.change_file(file)
 
-      {:ok, bot} = Bots.update_bot(bot, %{code: code})
-      bot_changeset = Bots.change_bot(bot)
-
-      {:noreply,
-       socket
-       |> assign(:bot_changeset, bot_changeset)
-       |> push_event(:monaco_load, %{value: code})}
+          {:noreply,
+           socket
+           |> assign(:file_changeset, file_changeset)
+           |> push_event(:monaco_load, %{value: code})}
+      end
     else
       {:noreply, socket}
     end
@@ -238,25 +250,6 @@ defmodule YourBotWeb.BotLive do
     |> YourBot.BotSupervisor.terminate_child()
 
     {:noreply, socket}
-  end
-
-  def handle_event("create_file", %{}, socket) do
-    case YourBot.Bots.create_file(socket.assigns.bot_changeset.data, %{
-           "name" => "file2.py",
-           "code" => "# Hello, World"
-         }) do
-      {:ok, file} ->
-        bot =
-          YourBot.Bots.get_bot(socket.assigns.bot_changeset.data.id)
-          |> YourBot.Bots.load_code(file)
-
-        bot_changeset = YourBot.Bots.change_bot(bot, %{})
-
-        {:noreply,
-         socket
-         |> assign(:bot_changeset, bot_changeset)
-         |> push_event(:monaco_load, %{value: bot.code})}
-    end
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{topic: "crud:bots", payload: data}, socket) do
@@ -301,12 +294,11 @@ defmodule YourBotWeb.BotLive do
         %Phoenix.Socket.Broadcast{
           topic: "editors",
           event: "presence_diff",
-          payload: presence
+          payload: _presence
         },
         socket
       ) do
     # online = socket.assigns.online
-    IO.inspect(presence)
     {:noreply, socket}
   end
 
@@ -382,10 +374,10 @@ defmodule YourBotWeb.BotLive do
   end
 
   def create_environment_variable(bot, params, socket) do
-    case Bots.create_environment_variable(bot, params) do
+    case Project.create_environment_variable(bot.project, params) do
       {:ok, _} ->
         environment_variable_changeset =
-          Bots.change_environment_variable(%EnvironmentVariable{bot_id: bot.id})
+          Project.change_environment_variable(%EnvironmentVariable{})
 
         {:noreply,
          socket
@@ -447,7 +439,7 @@ defmodule YourBotWeb.BotLive do
             <div class="tabs is-small">
               <ul>
                 <li class="is-active"><a> client.py </a></li>
-                {#for file <- tl(@bot_changeset.data.files) }
+                {#for file <- tl(@files) }
                   <li class="" :on-click=""><a> {file.name} </a></li>
                 {/for}
                 <a>
@@ -458,7 +450,7 @@ defmodule YourBotWeb.BotLive do
           </div>
         </div>
         <div class="navbar-item" :if={@bot_changeset.data.id}>
-          <Button class="button is-rounded is-primary" click="save_code"    opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
+          <Button class="button is-rounded is-primary" click="save_code" opts={phx_value_bot: @bot_changeset.data.id, role: "save_code_#{@bot_changeset.data.id}"} disabled={!@bot_changeset.valid?}>Save</Button>
         </div>
         <div class="navbar-item" :if={@bot_changeset.data.id}>
           <Button class="button is-rounded is-success" click="restart_code" opts={phx_value_bot: @bot_changeset.data.id, role: "restart_code_#{@bot_changeset.data.id}"}>Restart</Button>
@@ -478,7 +470,7 @@ defmodule YourBotWeb.BotLive do
         <div class="column">
           <MonacoEditor id="editor"/>
           <div :if={@bot_changeset.data.id}>
-            {#for env_var <- @bot_changeset.data.environment_variables }
+            {#for env_var <- @environment_variables }
               <div>
                 {env_var.key} {env_var.value}
               </div>

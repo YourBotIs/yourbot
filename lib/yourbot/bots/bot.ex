@@ -5,22 +5,19 @@ defmodule YourBot.Bots.Bot do
   import Ecto.Changeset
 
   schema "bots" do
+    has_one :project, YourBot.Bots.Project.Container
     field :name, :string, null: false
     field :token, :string, null: false, redact: true
     field :application_id, Snowflake, null: false
     field :public_key, :string, null: false
-    field :code, :string, virtual: true, redact: true
     field :deploy_status, Ecto.Enum, values: [:live, :stop, :edit, :error]
     field :uptime_status, Ecto.Enum, values: [:boot, :up, :down], virtual: true
-    has_many :environment_variables, YourBot.Bots.EnvironmentVariable
-    has_one :db, YourBot.Bots.DB
-    has_many :files, YourBot.Bots.File
     timestamps()
   end
 
   def changeset(bot, attrs \\ %{}) do
     bot
-    |> cast(attrs, [:name, :token, :application_id, :public_key, :code])
+    |> cast(attrs, [:name, :token, :application_id, :public_key])
     |> validate_required([:name, :token, :application_id, :public_key])
     |> unique_constraint([:name])
     |> unique_constraint([:application_id])

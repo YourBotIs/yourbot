@@ -31,11 +31,12 @@ defmodule YourBotWeb.Router do
     get "/users/:id/bots", BotsController, :show_bots_for_user
 
     resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete] do
-      post "/code", BotsController, :code
       get "/events", BotsController, :events
 
       resources "/environment_variables", EnvironmentVariableController,
         only: [:index, :create, :show, :update, :delete]
+
+      resources "/files", FileController, only: [:index, :create, :show, :update, :delete]
     end
   end
 
@@ -131,7 +132,8 @@ defmodule YourBotWeb.Router do
       tags: [
         %{name: "Users", description: "Operations about Users"},
         %{name: "Bots", description: "Operations about Bots"},
-        %{name: "EnvironmentVariables", description: "Operations about env vars"}
+        %{name: "EnvironmentVariable", description: "Operations about env vars"},
+        %{name: "File", description: "Operations about project files"}
       ]
     }
   end

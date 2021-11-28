@@ -1,6 +1,7 @@
 defmodule YourBotWeb.BotsController do
   use YourBotWeb, :controller
   alias YourBot.Bots
+  alias YourBot.Bots.Project
   alias YourBot.Accounts
 
   action_fallback YourBotWeb.FallbackController
@@ -25,7 +26,6 @@ defmodule YourBotWeb.BotsController do
             token(:string, "Authentication token", required: true)
             application_id(:integer, "Discord ID", required: true)
             public_key(:string, "Discord public key", required: true)
-            code(:string, "Python code", required: true)
             deploy_status(:string, Schema.ref(:BotDeployStatus), required: true)
           end
 
@@ -33,8 +33,7 @@ defmodule YourBotWeb.BotsController do
             name: "MiataBot",
             token: "super secret",
             application_id: "123455",
-            public_key: "12345",
-            code: "print('hello, world')"
+            public_key: "12345"
           })
         end,
       BotEvent:
@@ -62,7 +61,6 @@ defmodule YourBotWeb.BotsController do
                   token(:string, "Authentication token", required: true)
                   application_id(:integer, "Discord ID", required: true)
                   public_key(:string, "Discord public key", required: true)
-                  code(:string, "Python code", required: true)
                 end
               end
             )
@@ -73,8 +71,7 @@ defmodule YourBotWeb.BotsController do
               name: "MiataBot",
               token: "super secret",
               application_id: "123455",
-              public_key: "12345",
-              code: "print('hello, world')"
+              public_key: "12345"
             }
           })
         end
@@ -172,15 +169,6 @@ defmodule YourBotWeb.BotsController do
     render(conn, "index.json", bots: bots)
   end
 
-  def code(conn, %{"bots_id" => bot_id, "code" => code}) do
-    code = File.read!(code.path)
-    bot = Bots.get_bot(bot_id)
-    bot = Bots.sync_code!(bot, :defauld, code)
-
-    {:ok, bot} = Bots.update_bot(bot, %{code: bot.code})
-    render(conn, "show.json", bots: bot)
-  end
-
   swagger_path :events do
     get("/bots/{bot_id}/events")
     description("list bots")
@@ -191,7 +179,7 @@ defmodule YourBotWeb.BotsController do
 
   def events(conn, %{"bots_id" => bot_id}) do
     bot = Bots.get_bot(bot_id)
-    events = Bots.list_events(bot)
+    events = Project.list_events(bot.project)
     render(conn, "index.json", events: events)
   end
 end
