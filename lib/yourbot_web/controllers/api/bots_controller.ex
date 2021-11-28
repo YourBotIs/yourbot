@@ -182,4 +182,14 @@ defmodule YourBotWeb.BotsController do
     events = Project.list_events(bot.project)
     render(conn, "index.json", events: events)
   end
+
+  def export(conn, %{"bots_id" => bot_id}) do
+    bot = Bots.get_bot(bot_id)
+    filename = Project.Container.path(bot.project)
+
+    conn
+    |> put_resp_content_type("application/octet-stream")
+    |> put_resp_header("content-disposition", ~s(attachment; filename="#{bot.name}.sqlite3"))
+    |> send_file(200, filename)
+  end
 end

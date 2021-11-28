@@ -32,6 +32,7 @@ defmodule YourBotWeb.Router do
 
     resources "/bots", BotsController, only: [:index, :create, :show, :update, :delete] do
       get "/events", BotsController, :events
+      get "/export", BotsController, :export
 
       resources "/environment_variables", EnvironmentVariableController,
         only: [:index, :create, :show, :update, :delete]
