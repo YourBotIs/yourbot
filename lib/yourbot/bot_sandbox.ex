@@ -12,10 +12,8 @@ defmodule YourBot.BotSandbox do
     GenServer.start_link(__MODULE__, bot, name: via(bot, __MODULE__))
   end
 
-  def exec_code(bot, pid \\ nil) do
-    pid = pid || GenServer.whereis(via(bot, __MODULE__))
-    file = Project.get_entrypoint_file(bot.project)
-    GenServer.cast({__MODULE__, :"#{bot.id}@#{node_name()}"}, {:code, file.content, pid})
+  defp handshake(bot, pid) do
+    GenServer.cast({__MODULE__, :"#{bot.id}@#{node_name()}"}, {:handshake, pid})
   end
 
   def get_stdout(bot) do
@@ -30,6 +28,8 @@ defmodule YourBot.BotSandbox do
     sandbox_py = Application.app_dir(:yourbot, ["priv", "sandbox", "sandbox.py"])
     {:ok, _presence} = Presence.track(self(), "bots", "#{bot.id}", default_presence())
     project = Project.load_project(bot.project)
+    sandbox_dir = Path.expand("./storage/sandbox/#{bot.id}")
+    File.mkdir_p(sandbox_dir)
 
     args =
       [
@@ -37,7 +37,11 @@ defmodule YourBot.BotSandbox do
         "--name",
         "#{bot.id}@#{node_name()}",
         "--cookie",
-        to_string(Node.get_cookie())
+        to_string(Node.get_cookie()),
+        "--sandbox",
+        sandbox_dir,
+        "--database",
+        database_url(bot)
       ] ++ chroot()
 
     env =
@@ -79,7 +83,7 @@ defmodule YourBot.BotSandbox do
       true ->
         Logger.info("Connected to #{state.bot.id}@#{node_name()}")
         Node.monitor(:"#{state.bot.id}@#{node_name()}", true)
-        {:noreply, state, {:continue, :exec_code}}
+        {:noreply, state, {:continue, :handshake}}
 
       false ->
         Logger.warn("Failed to connect to #{state.bot.id}@#{node_name()}")
@@ -94,9 +98,8 @@ defmodule YourBot.BotSandbox do
     end
   end
 
-  def handle_continue(:exec_code, state) do
-    # internal continue method to start the discord client after the node is up
-    :ok = exec_code(state.bot, self())
+  def handle_continue(:handshake, state) do
+    handshake(state.bot, self())
     {:noreply, state}
   end
 

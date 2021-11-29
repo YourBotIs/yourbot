@@ -191,6 +191,17 @@ defmodule YourBotWeb.BotLive do
      |> push_event(:monaco_load, %{value: file_changeset.data.content})}
   end
 
+  def handle_event("select_file", %{"file" => file_id}, socket) do
+    file_changeset =
+      Project.get_file(socket.assigns.bot_changeset.data.project, file_id)
+      |> Project.change_file()
+
+    {:noreply,
+     socket
+     |> assign(:file_changeset, file_changeset)
+     |> push_event(:monaco_load, %{value: file_changeset.data.content})}
+  end
+
   def handle_event("show_bot_select_dialog", _, socket) do
     {:noreply,
      socket
@@ -438,13 +449,14 @@ defmodule YourBotWeb.BotLive do
             {@bot_changeset.data.name}
             <div class="tabs is-small">
               <ul>
-                <li class="is-active"><a> client.py </a></li>
-                {#for file <- tl(@files) }
-                  <li class="" :on-click=""><a> {file.name} </a></li>
+                {#for file <- @files }
+                  <li>
+                    <a :on-click="select_file" phx-value-file={file.id} >
+                      {file.name}
+                    </a>
+                  </li>
                 {/for}
-                <a>
-                  <span class="icon is-small" :on-click="create_file"><i class="fas fa-plus" aria-hidden="true"></i></span>
-                </a>
+                <span class="icon is-small" :on-click="create_file"><i class="fas fa-plus" aria-hidden="true"></i></span>
               </ul>
             </div>
           </div>

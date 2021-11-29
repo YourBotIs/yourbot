@@ -39,3 +39,4 @@ assets/js/_hooks/
 /extty
 *.env
 /git-client/
+__pycache__/
