@@ -41,7 +41,7 @@ defmodule YourBot.Bots.Project.File do
     if name = get_change(changeset, :name) do
       # yikes
       if Regex.match?(~r/(\s+|\/|\\|"|'|`)+/, name) do
-        add_error(changeset, :name, "May not contain special characters", [:name])
+        add_error(changeset, :name, "May not contain special characters")
       else
         changeset
       end

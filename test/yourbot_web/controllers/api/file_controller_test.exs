@@ -48,15 +48,15 @@ defmodule YourBotWeb.FileControllerTest do
   end
 
   test "update file", %{conn: conn, bot: bot, project_file: file} do
-    updated_name = unique_name("file renamed")
+    updated_name = unique_name("filerenamed")
+
+    params = %{
+      "name" => updated_name
+    }
 
     body =
       conn
-      |> patch(Routes.bots_file_path(conn, :update, bot, file), %{
-        "file" => %{
-          "name" => updated_name
-        }
-      })
+      |> patch(Routes.bots_file_path(conn, :update, bot, file), %{"file" => params})
       |> json_response(200)
 
     assert body["data"]["name"] == updated_name
