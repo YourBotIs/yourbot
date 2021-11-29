@@ -33,8 +33,6 @@ defmodule YourBot.BotSandbox do
       Path.join([sandbox_dir(), "#{bot.id}"])
       |> Path.expand()
 
-    File.mkdir_p(sandbox_dir)
-
     args =
       [
         sandbox_py,

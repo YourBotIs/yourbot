@@ -38,6 +38,11 @@ class Sandbox(GenServer):
             os.chroot(chroot)
             os.chdir("/")
 
+        try:
+            os.mkdir(sandbox)
+        except FileExistsError:
+            logger.debug("not making directory - already exists")
+
         os.chdir(sandbox)
 
         # delete all files in this dir to start clean
