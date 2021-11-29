@@ -61,7 +61,10 @@ config :surface, :components, [
    default_translator: {YourBotWeb.ErrorHelpers, :translate_error}}
 ]
 
-config :yourbot, YourBot.BotSandbox, node_name: "127.0.0.1", chroot: false
+config :yourbot, YourBot.BotSandbox,
+  node_name: "127.0.0.1",
+  chroot: false,
+  sandbox_dir: "./storage/sandbox"
 
 config :yourbot, YourBotWeb.OAuth.Discord,
   client_id: System.get_env("DISCORD_CLIENT_ID"),

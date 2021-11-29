@@ -28,7 +28,11 @@ defmodule YourBot.BotSandbox do
     sandbox_py = Application.app_dir(:yourbot, ["priv", "sandbox", "sandbox.py"])
     {:ok, _presence} = Presence.track(self(), "bots", "#{bot.id}", default_presence())
     project = Project.load_project(bot.project)
-    sandbox_dir = Path.expand("./storage/sandbox/#{bot.id}")
+
+    sandbox_dir =
+      Path.join([sandbox_dir(), "#{bot.id}"])
+      |> Path.expand()
+
     File.mkdir_p(sandbox_dir)
 
     args =
@@ -159,6 +163,14 @@ defmodule YourBot.BotSandbox do
     if chroot,
       do: Path.join(["/", "db", "#{bot.project.uuid}.sqlite3"]),
       else: YourBot.Bots.Project.Container.path(bot.project)
+  end
+
+  def sandbox_dir() do
+    chroot = Application.get_env(:yourbot, __MODULE__)[:chroot]
+
+    if chroot,
+      do: Path.join(["/", "sandbox"]),
+      else: Application.get_env(:yourbot, __MODULE__)[:sandbox_dir]
   end
 
   def default_presence do

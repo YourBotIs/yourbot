@@ -42,7 +42,7 @@ defmodule YourBot.Application do
 
   def populate_bot_sandboxes do
     for bot <- YourBot.Bots.list_started_bots() do
-      # YourBot.BotSupervisor.start_child(bot)
+      YourBot.BotSupervisor.start_child(bot)
     end
   end
 end

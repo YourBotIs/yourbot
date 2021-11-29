@@ -77,7 +77,10 @@ config :yourbot, YourBot.Repo,
   url: database_url,
   pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
-config :yourbot, YourBot.BotSandbox, node_name: "yourbotis", chroot: "/var/chroot"
+config :yourbot, YourBot.BotSandbox,
+  node_name: "yourbotis",
+  chroot: "/var/chroot",
+  sandbox_dir: "/var/chroot/sandbox"
 
 config :yourbot, YourBot.Bots.Project, storage_dir: "/var/chroot/db"
 
