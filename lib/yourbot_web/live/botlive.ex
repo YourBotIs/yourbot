@@ -1,5 +1,6 @@
 defmodule YourBotWeb.BotLive do
   use Surface.LiveView
+  alias YourBotWeb.Router.Helpers, as: Routes
 
   alias YourBot.Accounts
   alias MonacoEditor
@@ -21,6 +22,7 @@ defmodule YourBotWeb.BotLive do
   data show_env_var_dialog, :boolean, default: false
   data show_bot_events_dialog, :boolean, default: false
   data show_bot_select_dialog, :boolean, default: false
+  data show_import_dialog, :boolean, default: false
 
   def mount(_, %{"user_token" => token}, socket) do
     user = Accounts.get_user_by_session_token(token)
@@ -64,6 +66,13 @@ defmodule YourBotWeb.BotLive do
      socket
      |> assign(:show_bot_dialog, true)
      |> assign(:bot_changeset, bot_changeset)}
+  end
+
+  def handle_event("show_import_dialog", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_import_dialog, true)
+     |> allow_upload(:bot_import, accept: ~w(.sqlite3), max_entries: 1)}
   end
 
   def handle_event("show_env_var_dialog", _, socket) do
@@ -263,6 +272,68 @@ defmodule YourBotWeb.BotLive do
     {:noreply, socket}
   end
 
+  def handle_event("validate", _, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("import", _, socket) do
+    import Ecto.Query
+
+    [bot_changeset] =
+      consume_uploaded_entries(socket, :bot_import, fn %{path: path}, %{client_name: filename} ->
+        env_vars =
+          Project.Repo.with_repo(path, fn _ ->
+            Project.Repo.all(from ev in Project.EnvironmentVariable, select: {ev.key, ev.value})
+          end)
+
+        {bot_params, _env_vars} =
+          Enum.split_with(env_vars, fn
+            {"DISCORD_TOKEN", _token} -> true
+            {"DISCORD_PUBLIC_KEY", _public_key} -> true
+            {"DISCORD_CLIENT_ID", _client_id} -> true
+            {"DISCORD_APPLICATION_ID", _application_id} -> true
+            _ -> false
+          end)
+
+        bot_params =
+          Map.new(bot_params, fn
+            {"DISCORD_TOKEN", token} -> {:token, token}
+            {"DISCORD_PUBLIC_KEY", public_key} -> {:public_key, public_key}
+            {"DISCORD_CLIENT_ID", client_id} -> {:client_id, client_id}
+            {"DISCORD_APPLICATION_ID", application_id} -> {:application_id, application_id}
+          end)
+          |> Map.put(:name, Path.rootname(filename))
+
+        with {:ok, bot} <- Bots.import_bot(socket.assigns.user, bot_params) do
+          imported_path = Project.Container.path(bot.project)
+          Elixir.File.cp!(path, imported_path)
+          Project.Container.initialize(bot.project)
+          {:ok, bot}
+        end
+      end)
+
+    case bot_changeset do
+      {:ok, _bot} ->
+        bot_changeset = Bots.change_bot(%Bot{})
+
+        {
+          :noreply,
+          socket
+          |> assign(:bot_changeset, bot_changeset)
+          |> assign(:show_import_dialog, false)
+          #  |> disallow_upload(:bot_import)
+        }
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:show_import_dialog, false)
+         |> assign(:bot_changeset, changeset)
+         |> assign(:show_bot_dialog, true)
+         |> put_flash(:error, "could not import bot")}
+    end
+  end
+
   def handle_info(%Phoenix.Socket.Broadcast{topic: "crud:bots", payload: data}, socket) do
     bots =
       Bots.list_bots(socket.assigns.user)
@@ -434,6 +505,24 @@ defmodule YourBotWeb.BotLive do
     <BotModal title={"#{@action} Bot"} show={ @show_bot_dialog } hide_event="hide_dialog" changeset={ @bot_changeset } />
     <EnvVarModal title={"Environment variables"} show={ @show_env_var_dialog} hide_event="hide_dialog" changeset={@environment_variable_changeset} />
     <BotEventsModal title={"Bot Events"} show={ @show_bot_events_dialog } hide_event="hide_dialog" events={@events} />
+    <form :if={@show_import_dialog} id="upload-form" phx-submit="import" phx-change="validate">
+      {#for entry <-  @uploads.bot_import.entries }
+        <article class="upload-entry">
+          <figure>
+            <figcaption> {entry.client_name} </figcaption>
+          </figure>
+
+          <progress value={entry.progress} max="100"> {entry.progress}% </progress>
+          <button phx-click="cancel-upload" phx-value-ref={entry.ref} aria-label="cancel">&times;</button>
+
+          {#for err <- upload_errors(@uploads.bot_import, entry)}
+            <p class="alert alert-danger">{ inspect(err) }</p>
+          {/for}
+        </article>
+      {/for}
+      { live_file_input @uploads.bot_import }
+      <button type="submit">Upload</button>
+    </form>
     <nav class="navbar" role="navigation" aria-label="dropdown navigation">
       <div class="navbar-menu">
         <div class="navbar-start">
@@ -473,6 +562,7 @@ defmodule YourBotWeb.BotLive do
         <div class="navbar-end">
           <div class="navbar-item">
             <Button click="show_bot_dialog" color="primary" opts={role: "create_bot"}>Setup New Bot</Button>
+            <Button click="show_import_dialog" color="primary" opts={role: "create_bot"}>Import bot</Button>
           </div>
         </div>
       </div>
@@ -496,7 +586,9 @@ defmodule YourBotWeb.BotLive do
               <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_dialog" color="primary" opts={role: "edit_bot"}>Edit Bot</Button>
               <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_env_var_dialog" color="primary" opts={role: "show_env_var_dialog"}>Env Vars</Button>
               <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="show_bot_events_dialog" color="primary" opts={role: "show_bot_events_dialog"}>Event Log</Button>
-            </div>
+              <Button :if={@bot_changeset.data.id} class="button is-rounded is-primary" click="export_code" color="primary" opts={role: "export_code"}>Export code</Button>
+              <a :if={@bot_changeset.data.id} href={Routes.bots_path(@socket, :export, @bot_changeset.data)}> Export Code </a>
+              </div>
             <div>
               {@bot_changeset.data.uptime_status}
               <a href={"https://discord.com/developers/applications/#{@bot_changeset.data.application_id}/bot"} :if={@bot_changeset.data.id}> Discord Management Console </a>

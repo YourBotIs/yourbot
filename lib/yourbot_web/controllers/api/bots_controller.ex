@@ -192,4 +192,45 @@ defmodule YourBotWeb.BotsController do
     |> put_resp_header("content-disposition", ~s(attachment; filename="#{bot.name}.sqlite3"))
     |> send_file(200, filename)
   end
+
+  # curl -i -X POST -H "Authorization: $TOKEN" -H "Content-Type: multipart/form-data" -F "bot=@$filename" -F "user=$discord_user_id" http://localhost:4000/api/bots/import
+
+  def import(conn, %{"bot" => upload, "user" => discord_user_id}) do
+    user = Accounts.get_user_by_discord_id(discord_user_id)
+
+    env_vars =
+      Project.Repo.with_repo(upload.path, fn _ ->
+        import Ecto.Query
+        Project.Repo.all(from ev in Project.EnvironmentVariable, select: {ev.key, ev.value})
+      end)
+
+    {bot_params, _env_vars} =
+      Enum.split_with(env_vars, fn
+        {"DISCORD_TOKEN", _token} -> true
+        {"DISCORD_PUBLIC_KEY", _public_key} -> true
+        {"DISCORD_CLIENT_ID", _client_id} -> true
+        {"DISCORD_APPLICATION_ID", _application_id} -> true
+        _ -> false
+      end)
+
+    bot_params =
+      Map.new(bot_params, fn
+        {"DISCORD_TOKEN", token} -> {:token, token}
+        {"DISCORD_PUBLIC_KEY", public_key} -> {:public_key, public_key}
+        {"DISCORD_CLIENT_ID", client_id} -> {:client_id, client_id}
+        {"DISCORD_APPLICATION_ID", application_id} -> {:application_id, application_id}
+      end)
+      |> Map.put(:name, Path.rootname(upload.filename))
+
+    with {:ok, bot} <- Bots.import_bot(user, bot_params) do
+      imported_path = Project.Container.path(bot.project)
+      Elixir.File.cp!(upload.path, imported_path)
+      Project.Container.initialize(bot.project)
+
+      conn
+      |> put_status(:created)
+      |> put_resp_header("location", Routes.bots_path(conn, :show, bot))
+      |> render("show.json", bots: bot)
+    end
+  end
 end

@@ -92,6 +92,32 @@ defmodule YourBot.Bots do
     end
   end
 
+  def import_bot(user, attrs) do
+    multi =
+      Multi.new()
+      |> Multi.insert(:bot, fn _ ->
+        change_bot(%Bot{}, attrs)
+      end)
+      |> Multi.insert(:bot_user, fn %{bot: %{id: bot_id}} ->
+        change(%BotUser{bot_id: bot_id, user_id: user.id}, %{user_id: user.id, bot_id: bot_id})
+      end)
+      |> Multi.insert(:project_container_insert, fn %{bot: %{id: bot_id}} ->
+        change(%Project.Container{bot_id: bot_id}, %{bot_id: bot_id})
+      end)
+      |> Multi.run(:project_container, fn repo, %{project_container_insert: %{id: id}} ->
+        {:ok, repo.get(Project.Container, id)}
+      end)
+
+    case Repo.transaction(multi) do
+      {:ok, %{bot: bot, project_container: project}} ->
+        @endpoint.broadcast("crud:bots", "insert", %{new: %{bot | project: project}})
+        {:ok, %{bot | project: project}}
+
+      {:error, :bot, changeset, _changes} ->
+        {:error, changeset}
+    end
+  end
+
   def update_bot(bot, attrs) do
     changeset = change_bot(bot, attrs)
 

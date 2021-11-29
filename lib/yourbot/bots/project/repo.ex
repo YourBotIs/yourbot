@@ -6,12 +6,16 @@ defmodule YourBot.Bots.Project.Repo do
   alias YourBot.Bots.Project.Repo
 
   def with_repo(%YourBot.Bots.Project.Container{} = container, fun) do
+    with_repo(YourBot.Bots.Project.Container.path(container), fun)
+  end
+
+  def with_repo(path, fun) do
     default_dynamic_repo = Repo.get_dynamic_repo()
 
     {:ok, pid} =
       Repo.start_link(
         name: nil,
-        database: YourBot.Bots.Project.Container.path(container),
+        database: path,
         pool_size: 1
       )
 

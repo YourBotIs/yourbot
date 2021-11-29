@@ -105,4 +105,29 @@ defmodule YourBotWeb.BotsControllerTest do
     assert body = json_response(conn, 200)
     assert is_list(body["data"])
   end
+
+  test "import/export", %{conn: conn, bot: bot, discord_oauth: discord_oauth} do
+    # export the file
+    conn = get(conn, Routes.bots_bots_path(conn, :export, bot))
+    filename = "#{bot.name}.sqlite3"
+
+    # save it locally
+    :ok = File.write!("storage/test/db/#{filename}", conn.resp_body)
+
+    # delete the bot
+    conn = delete(conn, Routes.bots_path(conn, :delete, bot))
+
+    upload = %Plug.Upload{path: "storage/test/db/#{filename}", filename: filename}
+
+    # upload the exported bot
+    conn =
+      post(conn, Routes.bots_path(conn, :import), %{
+        user: discord_oauth.discord_user_id,
+        bot: upload
+      })
+
+    File.rm!("storage/test/db/#{filename}")
+    assert body = json_response(conn, 201)
+    assert body["data"]["name"] == bot.name
+  end
 end

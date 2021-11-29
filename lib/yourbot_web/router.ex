@@ -41,6 +41,11 @@ defmodule YourBotWeb.Router do
     end
   end
 
+  scope "/api", YourBotWeb do
+    pipe_through [:require_authenticated_api_token]
+    post "/bots/import", BotsController, :import
+  end
+
   scope "/", YourBotWeb do
     pipe_through :browser
 
@@ -93,6 +98,7 @@ defmodule YourBotWeb.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     live "/bots", BotLive, :index
+    get "/bots/:bots_id/export", BotsController, :export
   end
 
   scope "/", YourBotWeb do
