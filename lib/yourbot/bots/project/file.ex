@@ -15,6 +15,7 @@ defmodule YourBot.Bots.Project.File do
     file
     |> cast(attrs, [:name, :content])
     |> validate_required([:name, :content])
+    |> validate_name()
     |> unique_constraint([:project_id, :name], message: "project filenames must be unique")
     |> put_uuid()
   end
@@ -28,6 +29,24 @@ defmodule YourBot.Bots.Project.File do
       changeset
     else
       put_change(changeset, :uuid, Ecto.UUID.autogenerate())
+    end
+  end
+
+  def validate_name(%{valid?: false} = chagneset) do
+    chagneset
+  end
+
+  # todo: p sure ecto has a thing for this
+  def validate_name(changeset) do
+    if name = get_change(changeset, :name) do
+      # yikes
+      if Regex.match?(~r/(\s+|\/|\\|"|'|`)+/, name) do
+        add_error(changeset, :name, "May not contain special characters", [:name])
+      else
+        changeset
+      end
+    else
+      changeset
     end
   end
 end
