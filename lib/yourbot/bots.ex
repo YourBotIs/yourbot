@@ -7,6 +7,10 @@ defmodule YourBot.Bots do
 
   alias YourBot.Bots.{Bot, BotUser, Project}
 
+  def list_projects do
+    Repo.all(Project.Container)
+  end
+
   def list_bots do
     Repo.all(Bot)
     |> Repo.preload([:project])
@@ -42,6 +46,12 @@ defmodule YourBot.Bots do
   def get_bot(id) do
     Repo.get!(Bot, id)
     |> Repo.preload([:project])
+  end
+
+  def get_bot_by_project_id(project_id) do
+    # todo: this could be a join and not do 3 queries lmao
+    project = Repo.get_by!(Project.Container, id: project_id)
+    get_bot(project.bot_id)
   end
 
   def create_bot(user, attrs \\ %{}) do
