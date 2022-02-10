@@ -19,6 +19,7 @@ defmodule YourBotWeb.FileView do
 
   def render("file.json", %{file: file}) do
     %{
+      id: file.id,
       name: file.name,
       content: file.content,
       uuid: file.uuid,
